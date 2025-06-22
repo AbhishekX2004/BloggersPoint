@@ -10,6 +10,7 @@ import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import Explore from './pages/Explore'
 import BlogPostPage from './pages/Blog'
+import Profile from './pages/Profile'
 
 function App() {
   return (
@@ -32,9 +33,9 @@ function App() {
 				
 				/*}
 				{/* User Routes */}
+				<Route path="/profile" element={<Profile />} />				
 				{/* 				
 				
-				<Route path="/profile" element={<Profile />} />				
 				<Route path="/create" element={<Create />} />
 				<Route path="/post/:blogId" element={<Post />} />
 				

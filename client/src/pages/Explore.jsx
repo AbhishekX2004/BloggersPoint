@@ -382,7 +382,7 @@ const Explore = () => {
 
       {/* Header */}
       <motion.div
-        className="bg-white shadow-sm sticky top-0 z-50 relative"
+        className="bg-white shadow-sm sticky top-0 z-20"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}

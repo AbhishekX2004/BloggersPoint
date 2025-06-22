@@ -91,7 +91,7 @@ const Navbar = () => {
       {/* Mobile Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed top-0 right-0 h-full w-80 bg-blue-950/95 backdrop-blur-md text-white z-40 transform transition-transform duration-300 ease-in-out md:hidden ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed top-0 right-0 h-full w-80 bg-blue-950/95 backdrop-blur-md text-white z-100 transform transition-transform duration-300 ease-in-out md:hidden ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
       >
         <div className="flex items-center justify-between p-5 border-b border-blue-800/50">
