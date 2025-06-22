@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FloatingParticals from '../../components/FloatingParticals';
 
 const Register = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -45,48 +46,7 @@ const Register = () => {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-indigo-100 relative flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 210px)' }}>
       {/* Floating particles animation */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        {[...Array(40)].map((_, i) => {
-          const size = Math.random() * 4 + 8;
-          const initialX = Math.random() * 100;
-          const initialY = Math.random() * 100;
-          const moveX = (Math.random() - 0.5) * 80;
-          const moveY = (Math.random() - 0.5) * 80;
-          const duration = Math.random() * 8 + 6;
-          const delay = Math.random() * 3;
-          const opacity = Math.random() * 0.08 + 0.3;
-
-          return (
-            <motion.div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: size,
-                height: size,
-                left: `${initialX}%`,
-                top: `${initialY}%`,
-                background: i % 3 === 0 
-                  ? 'rgba(59, 130, 246, 0.25)' 
-                  : i % 3 === 1 
-                  ? 'rgba(147, 51, 234, 0.25)' 
-                  : 'rgba(16, 185, 129, 0.25)',
-                opacity: opacity
-              }}
-              animate={{
-                x: [0, moveX, 0],
-                y: [0, moveY, 0],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: duration,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: delay
-              }}
-            />
-          );
-        })}
-      </div>
+      <FloatingParticals particals={50} />
 
       {/* Main content */}
       <div className="relative z-10 w-full max-w-md mx-auto">
