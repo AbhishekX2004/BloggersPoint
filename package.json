@@ -1,0 +1,21 @@
+{
+  "name": "bloggerspoint",
+  "version": "1.0.0",
+  "description": "GenAI powered blogging platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd functions && npm run serve",
+    "client": "cd client && npm run dev",
+    "build-client": "cd client && npm run build",
+    "install-all": "npm install && concurrently \"cd functions && npm install\" \"cd client && npm install\""
+  },
+  "keywords": [],
+  "author": "Abhishek Verma",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

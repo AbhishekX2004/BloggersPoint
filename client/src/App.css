@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 20%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-background-text {
+  background: linear-gradient(135deg, #20c1fb, #2e7ece, #8b1bf4);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 6s ease-in-out infinite;
+}
+
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
