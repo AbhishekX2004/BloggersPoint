@@ -141,6 +141,18 @@ const Profile = () => {
         }
     };
 
+    const handleEditProfileClick = () => {
+        if (isEditingProfile) {
+            handleProfileUpdate();
+        } else {
+            setIsEditingProfile(true);
+            setEditedProfile({
+                displayName: userData.displayName,
+                bio: userData.bio
+            });
+        }
+    };
+
     const fadeInUp = {
         hidden: { opacity: 0, y: 60 },
         visible: {
@@ -207,24 +219,49 @@ const Profile = () => {
                             <h1 className="text-4xl font-bold text-gray-900">
                                 My <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Profile</span>
                             </h1>
-                            <motion.button
-                                className="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold shadow-lg"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => signOut(auth)}
-                            >
-                                Sign Out
-                            </motion.button>
+                            <div className="flex items-center gap-3">
+                                
+                                <motion.button
+                                    className="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold shadow-lg"
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => signOut(auth)}
+                                >
+                                    Sign Out
+                                </motion.button>
+                            </div>
                         </motion.div>
 
                         {/* Profile Section */}
                         <motion.div
-                            className="bg-white rounded-2xl shadow-xl p-8 mb-8"
+                            className="bg-white rounded-2xl shadow-xl p-8 mb-8 relative"
                             variants={fadeInUp}
                             whileHover={{ boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)" }}
                         >
+                            {/* Mobile Edit Profile Button - Only visible on small screens, positioned top right */}
+                            <motion.button
+                                className="sm:hidden bg-blue-600 text-white p-2 rounded-lg shadow-lg absolute top-4 right-4"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={handleEditProfileClick}
+                                title={isEditingProfile ? 'Save Profile' : 'Edit Profile'}
+                            >
+                                {isEditingProfile ? (
+                                    // Save icon
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                ) : (
+                                    // Edit/Pencil icon
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                )}
+                            </motion.button>
+                            
                             <div className="flex flex-col lg:flex-row gap-8">
                                 {/* Left Side */}
+                                
                                 <div className="flex flex-col items-center lg:items-start">
                                     <motion.div
                                         className="relative group cursor-pointer"
@@ -264,7 +301,7 @@ const Profile = () => {
                                         {/* Camera overlay on hover */}
                                         <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                             <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                                             </svg>
                                         </div>
@@ -326,23 +363,29 @@ const Profile = () => {
                                             )}
                                             <p className="text-gray-600 mt-1">{userData.email}</p>
                                         </div>
+                                        
+                                        {/* Desktop Edit Profile Button - Hidden on mobile */}
                                         <motion.button
-                                            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow-lg"
+                                            className="hidden sm:flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow-lg"
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
-                                            onClick={() => {
-                                                if (isEditingProfile) {
-                                                    handleProfileUpdate();
-                                                } else {
-                                                    setIsEditingProfile(true);
-                                                    setEditedProfile({
-                                                        displayName: userData.displayName,
-                                                        bio: userData.bio
-                                                    });
-                                                }
-                                            }}
+                                            onClick={handleEditProfileClick}
                                         >
-                                            {isEditingProfile ? 'Save' : 'Edit Profile'}
+                                            {isEditingProfile ? (
+                                                <>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                    <span className="hidden md:inline">Save</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                    <span className="hidden md:inline">Edit Profile</span>
+                                                </>
+                                            )}
                                         </motion.button>
                                     </div>
 
@@ -431,6 +474,7 @@ const Profile = () => {
                                     </div>
                                 </div>
                             </div>
+                            
                         </motion.div>
                     </div>
                 </motion.div>
