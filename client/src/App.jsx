@@ -11,6 +11,8 @@ import Register from './pages/Auth/Register'
 import Explore from './pages/Explore'
 import BlogPostPage from './pages/Blog'
 import Profile from './pages/Profile'
+import IntroPage from './pages/Auth/IntroPage'
+import BlogCreator from './pages/BlogCreator'
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
 				<Route path="/explore" element={<Explore />} />
 
 				<Route path="/blog" element={<BlogPostPage />} />
+				<Route path="/getting-started" element={<IntroPage />} />
+				<Route path="/write" element={<BlogCreator />} />
 
 				{/* 
 

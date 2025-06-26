@@ -8,6 +8,7 @@
     "start": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd functions && npm run serve",
     "client": "cd client && npm run dev",
+    "deploy": "npm run build-client && cross-env NODE_ENV=production firebase deploy",
     "build-client": "cd client && npm run build",
     "install-all": "npm install && concurrently \"cd functions && npm install\" \"cd client && npm install\""
   },
@@ -16,6 +17,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3"
   }
 }

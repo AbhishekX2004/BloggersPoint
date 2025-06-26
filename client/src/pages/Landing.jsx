@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ScrollToTop from '../components/ScrollToTop';
 import FloatingParticals from '../components/FloatingParticals';
+import { auth } from '../firebaseConfig'; 
 
 const LandingPage = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -100,6 +101,16 @@ const LandingPage = () => {
     }
   };
 
+  const writeABlog = () => {
+    const user = auth.currentUser;
+    
+    if (user) {
+      navigate('/profile');
+    } else {
+      navigate('/login');
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 relative">
       {/* Floating particles animation */}
@@ -177,7 +188,7 @@ const LandingPage = () => {
                 }}
                 whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              // onClick={() => writeABlog()}
+                onClick={() => writeABlog()}
               >
                 Write a Blog
               </motion.button>

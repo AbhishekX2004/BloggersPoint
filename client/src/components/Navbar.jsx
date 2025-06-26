@@ -1,10 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom";
+import { auth } from '../firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
+import axios from 'axios';
+
+const API = import.meta.env.VITE_API;
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
   const sidebarRef = useRef(null);
   const navigate = useNavigate();
+
+  // Monitor authentication state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(false);
+      
+      if (currentUser) {
+        // Pass currentUser directly instead of relying on state
+        fetchUserProfile(currentUser);
+      } else {
+        setUserProfile(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch user profile data from API
+  const fetchUserProfile = async (userObj = user) => {
+    // Use the passed userObj or fallback to state user
+    if (!userObj || !userObj.uid) {
+      console.error('No user object or uid available');
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API}/user/name-photo?uid=${userObj.uid}`);
+      if(response && response.status === 200){
+        setUserProfile(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   // Close sidebar when clicking outside
   useEffect(() => {
@@ -36,6 +79,21 @@ const Navbar = () => {
     };
   }, [isMenuOpen]);
 
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setIsMenuOpen(false);
+  };
+
+  const handleGetStarted = () => {
+    navigate('/register');
+    setIsMenuOpen(false);
+  };
+
+  const handleLogin = () => {
+    navigate('/login');
+    setIsMenuOpen(false);
+  };
+
   return (
     <>
       <nav className="bg-blue-950 text-white shadow-lg relative z-40">
@@ -47,16 +105,52 @@ const Navbar = () => {
 
             {/* Desktop Menu */}
             <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-4">
-                <p className="text-blue-400 hover:bg-blue-950 px-3 py-2 rounded-md text-sl font-medium transition-colors cursor-pointer" onClick={() => navigate('/')}>
+              <div className="ml-10 flex items-center space-x-4">
+                <p className="text-blue-400 hover:bg-blue-950 px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer" onClick={() => navigate('/')}>
                   Home
                 </p>
-                <p className="text-blue-400 hover:bg-blue-950 px-3 py-2 rounded-md text-sl font-medium transition-colors cursor-pointer" onClick={() => navigate('/explore')}>
+                <p className="text-blue-400 hover:bg-blue-950 px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer" onClick={() => navigate('/explore')}>
                   Blogs
                 </p>
-                <a target='_blank' href="https://portfolio-abhishekverma.web.app/" className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 px-3 py-2 rounded-md text-sl font-medium transition-all">
+                <a target='_blank' href="https://portfolio-abhishekverma.web.app/" className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 px-3 py-2 rounded-md text-base font-medium transition-all">
                   About the Dev
                 </a>
+                
+                {/* Authentication Section - Desktop */}
+                {!loading && (
+                  <>
+                    {user && userProfile ? (
+                      // Show profile picture when logged in
+                      <div 
+                        onClick={handleProfileClick}
+                        className="cursor-pointer flex items-center"
+                      >
+                        <img
+                          src={userProfile.photoURL}
+                          alt="Profile"
+                          referrerPolicy='no-referrer'
+                          className="w-12 h-12 rounded-full border-2 border-blue-400 hover:border-purple-500 transition-colors object-cover shadow-lg"
+                        />
+                      </div>
+                    ) : (
+                      // Show Get Started and Login buttons when not logged in
+                      <div className="flex items-center space-x-3 ml-6">
+                        <button
+                          onClick={handleGetStarted}
+                          className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 px-5 py-2.5 rounded-md text-white font-medium transition-all transform hover:scale-105 shadow-lg"
+                        >
+                          Get Started
+                        </button>
+                        <button
+                          onClick={handleLogin}
+                          className="border border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white px-5 py-2.5 rounded-md font-medium transition-colors"
+                        >
+                          Login
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
@@ -107,16 +201,58 @@ const Navbar = () => {
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-2">
-          <p className="text-blue-400 hover:bg-blue-950/50 px-3 py-2 rounded-md text-sl font-medium transition-colors cursor-pointer" onClick={() => navigate('/')}>
-            Home
-          </p>
-          <p className="text-blue-400 hover:bg-blue-950/50 px-3 py-2 rounded-md text-sl font-medium transition-colors cursor-pointer" onClick={() => navigate('/explore')}>
-            Blogs
-          </p>
-          <a target='_blank' href="https://portfolio-abhishekverma.web.app/" className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 px-3 py-2 rounded-md text-sl font-medium transition-all">
-            About the Dev
-          </a>
+        <div className="flex flex-col justify-between h-full p-5">
+          {/* Navigation Links */}
+          <div className="space-y-2">
+            <p className="text-blue-400 hover:bg-blue-950/50 px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer" onClick={() => { navigate('/'); setIsMenuOpen(false); }}>
+              Home
+            </p>
+            <p className="text-blue-400 hover:bg-blue-950/50 px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer" onClick={() => { navigate('/explore'); setIsMenuOpen(false); }}>
+              Blogs
+            </p>
+            <a target='_blank' href="https://portfolio-abhishekverma.web.app/" className="block bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 px-3 py-2 rounded-md text-base font-medium transition-all">
+              About the Dev
+            </a>
+          </div>
+
+          {/* Authentication Section - Mobile (Bottom) */}
+          {!loading && (
+            <div className="border-t border-blue-800/50 pt-4">
+              {user && userProfile ? (
+                // Show profile with photo and name
+                <div 
+                  onClick={handleProfileClick}
+                  className="flex items-center space-x-3 p-3 hover:bg-blue-950/50 rounded-md cursor-pointer transition-colors"
+                >
+                  <img
+                    src={userProfile.photoURL}
+                    alt="Profile"
+                    referrerPolicy='no-referrer'
+                    className="w-12 h-12 rounded-full border-2 border-blue-400 object-cover"
+                  />
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{userProfile.displayName || 'User'}</p>
+                  </div>
+                </div>
+              ) : (
+                // Show Get Started and Login buttons
+                <div className="space-y-3">sasdfg
+                  <button
+                    onClick={handleGetStarted}
+                    className="w-full bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 px-4 py-3 rounded-md text-white font-medium transition-all transform hover:scale-105"
+                  >
+                    Get Started
+                  </button>
+                  <button
+                    onClick={handleLogin}
+                    className="w-full border border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-white px-4 py-3 rounded-md font-medium transition-colors"
+                  >
+                    Login
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </>

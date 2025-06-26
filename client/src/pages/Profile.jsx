@@ -5,9 +5,14 @@ import { auth } from '../firebaseConfig';
 import { signOut } from 'firebase/auth';
 import axios from 'axios';
 import FloatingParticals from '../components/FloatingParticals';
+import UploadIndicator from '../components/UploadIndicator';
 import ScrollToTop from '../components/ScrollToTop';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebaseConfig';
 
-import { dummyUser, userStatuses } from './test/dummyUser';
+import { userStatuses } from './test/dummyUser';
+
+const API = import.meta.env.VITE_API;
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -18,78 +23,101 @@ const Profile = () => {
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [editedProfile, setEditedProfile] = useState({});
     const [dragActive, setDragActive] = useState(false);
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
     useEffect(() => {
         // Check authentication
-        const unsubscribe = auth.onAuthStateChanged((user) => {
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 navigate('/login');
             }
-        });
-
-        // Fetch user data - replace with actual API call
-        const fetchUserData = async () => {
             try {
-                // const response = await axios.get('/api/user/profile');
-                // setUserData(response.data);
-
-                // Using dummy data for now
-                setTimeout(() => {
-                    setUserData(dummyUser);
-                    setEditedProfile(dummyUser.id);
-                    setLoading(false);
-                }, 1000);
+                const response = await axios.get(`${API}/user/?uid=${user.uid}`);
+                setUserData(response.data);
+                setLoading(false);
             } catch (error) {
                 console.error('Error fetching user data:', error);
                 setLoading(false);
+                // TODO : Show error message to user.
             }
-        };
-
-        fetchUserData();
+        });
         return () => unsubscribe();
     }, [navigate]);
 
     const handleStatusUpdate = async (newStatus) => {
+        let oldStatus = userData.status || '';
         try {
-            // await axios.put('/api/user/status', { status: newStatus });
             setUserData(prev => ({
                 ...prev,
-                id: { ...prev.id, status: newStatus }
+                status: newStatus,
             }));
             setShowStatusDropdown(false);
+            await axios.post(`${API}/user/status`, { uid: userData.uid, status: newStatus });
         } catch (error) {
             console.error('Error updating status:', error);
+            setUserData(prev => ({
+                ...prev,
+                status: oldStatus,
+            }));
         }
     };
 
     const handleProfileUpdate = async () => {
         try {
-            // await axios.put('/api/user/profile', editedProfile);
+            const updateData = {
+                uid: userData.uid,
+                displayName: editedProfile.displayName,
+                bio: editedProfile.bio
+            };
+
+            await axios.put(`${API}/user/profile`, updateData);
+
             setUserData(prev => ({
                 ...prev,
-                id: editedProfile
+                displayName: editedProfile.displayName,
+                bio: editedProfile.bio
             }));
+
             setIsEditingProfile(false);
         } catch (error) {
             console.error('Error updating profile:', error);
+            // Optional: Show error message to user
         }
     };
 
+    // Updated handlePhotoUpload function with upload indicator
     const handlePhotoUpload = async (file) => {
         try {
-            const formData = new FormData();
-            formData.append('photo', file);
-            // await axios.put('/api/user/photo', formData);
+            setIsUploadingPhoto(true);
+            
+            // Create a reference to the storage location
+            const timestamp = Date.now();
+            const storageRef = ref(storage, `profile-photos/${userData.uid}_${timestamp}`);
 
-            // For demo, create a URL for the uploaded file
-            const photoURL = URL.createObjectURL(file);
+            // Upload the file to Firebase Storage
+            const snapshot = await uploadBytes(storageRef, file);
+
+            // Get the download URL
+            const downloadURL = await getDownloadURL(snapshot.ref);
+
+            // Send the URL to your API
+            await axios.put(`${API}/user/profile-image`, {
+                uid: userData.uid,
+                url: downloadURL
+            });
+
+            // Update the local state
             setUserData(prev => ({
                 ...prev,
-                id: { ...prev.id, photoURL }
+                photoURL: downloadURL
             }));
+
             setShowPhotoModal(false);
         } catch (error) {
             console.error('Error uploading photo:', error);
+            // Optional: Show error message to user
+        } finally {
+            setIsUploadingPhoto(false);
         }
     };
 
@@ -154,6 +182,14 @@ const Profile = () => {
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 relative">
             <FloatingParticals particals={60} />
 
+            {/* Upload Indicator */}
+            <UploadIndicator 
+                isVisible={isUploadingPhoto}
+                message="Uploading photo..."
+                position="top-left"
+                color="blue"
+            />
+
             {/* Main Content */}
             <div className="relative z-10">
                 {/* Header */}
@@ -195,42 +231,83 @@ const Profile = () => {
                                         whileHover={{ scale: 1.05 }}
                                         onClick={() => setShowPhotoModal(true)}
                                     >
-                                        <img
-                                            src={userData.id.photoURL}
-                                            alt="Profile"
-                                            className="w-32 h-32 rounded-full object-cover shadow-lg"
-                                        />
-                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 rounded-full transition-all duration-300 flex items-center justify-center">
-                                            <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                                📷
-                                            </span>
+                                        <div className="w-32 h-32 rounded-full overflow-hidden shadow-lg bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                                            {userData.photoURL ? (
+                                                <img
+                                                    src={userData.photoURL}
+                                                    alt="Profile"
+                                                    className="w-full h-full object-cover"
+                                                    referrerPolicy='no-referrer'
+                                                    onError={(e) => {
+                                                        console.log('Image load error:', e);
+                                                        e.target.style.display = 'none';
+                                                        e.target.parentElement.classList.remove('overflow-hidden');
+                                                        e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
+                                                    }}
+                                                    onLoad={(e) => {
+                                                        console.log('Image loaded successfully');
+                                                        e.target.parentElement.classList.add('overflow-hidden');
+                                                        e.target.parentElement.classList.remove('flex', 'items-center', 'justify-center');
+                                                    }}
+                                                />
+                                            ) : null}
+                                            {/* Fallback avatar - always rendered */}
+                                            <div 
+                                                className="absolute inset-0 flex items-center justify-center text-white text-2xl font-bold"
+                                                style={{ 
+                                                    display: userData.photoURL ? 'none' : 'flex'
+                                                }}
+                                            >
+                                                {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : 'U'}
+                                            </div>
+                                        </div>
+                                        {/* Camera overlay on hover */}
+                                        <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
                                         </div>
                                     </motion.div>
-                                    
+
                                     {/* Last Login */}
                                     <div className="text-sm text-gray-500 mt-4 text-center lg:text-left">
                                         <span className="font-medium">Last active:</span><br />
                                         <span>
-                                            {userData.id.lastLogin?.toDate ?
-                                                userData.id.lastLogin.toDate().toLocaleString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                    hour12: true
-                                                }) :
-                                                new Date(userData.id.lastLogin).toLocaleString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                    hour12: true
-                                                })
-                                            }
+                                            {userData.lastLogin ? (() => {
+                                                const getDateObj = () => {
+                                                    if (userData.lastLogin._seconds)
+                                                        return new Date(userData.lastLogin._seconds * 1000);
+                                                    if (userData.lastLogin.toDate)
+                                                        return userData.lastLogin.toDate();
+                                                    return new Date(userData.lastLogin);
+                                                };
+
+                                                const loginDate = getDateObj();
+                                                const today = new Date();
+                                                const dateOnly = new Date(loginDate.getFullYear(), loginDate.getMonth(), loginDate.getDate());
+                                                const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                                                const diffDays = Math.floor((todayOnly - dateOnly) / (1000 * 60 * 60 * 24));
+
+                                                const label =
+                                                    diffDays === 0 ? 'Today' :
+                                                        diffDays === 1 ? 'Yesterday' :
+                                                            `${diffDays} days ago`;
+
+                                                return (
+                                                    <div className="text-center">
+                                                        {loginDate.toLocaleDateString('en-US', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                        })} &nbsp;
+                                                        ({label})
+                                                    </div>
+                                                );
+                                            })() : 'Never'}
                                         </span>
                                     </div>
+
                                 </div>
 
                                 {/* Right Side - Profile Info */}
@@ -245,9 +322,9 @@ const Profile = () => {
                                                     className="text-3xl font-bold text-gray-900 border-b-2 border-blue-300 focus:outline-none focus:border-blue-600"
                                                 />
                                             ) : (
-                                                <h2 className="text-3xl font-bold text-gray-900 gradient-background-text">{userData.id.displayName}</h2>
+                                                <h2 className="text-3xl font-bold text-gray-900 gradient-background-text">{userData.displayName}</h2>
                                             )}
-                                            <p className="text-gray-600 mt-1">{userData.id.email}</p>
+                                            <p className="text-gray-600 mt-1">{userData.email}</p>
                                         </div>
                                         <motion.button
                                             className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold shadow-lg"
@@ -258,6 +335,10 @@ const Profile = () => {
                                                     handleProfileUpdate();
                                                 } else {
                                                     setIsEditingProfile(true);
+                                                    setEditedProfile({
+                                                        displayName: userData.displayName,
+                                                        bio: userData.bio
+                                                    });
                                                 }
                                             }}
                                         >
@@ -274,9 +355,12 @@ const Profile = () => {
                                                 onChange={(e) => setEditedProfile({ ...editedProfile, bio: e.target.value })}
                                                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600 resize-none"
                                                 rows="3"
+                                                placeholder="Tell us about yourself..."
                                             />
                                         ) : (
-                                            <p className="text-gray-600">{userData.id.bio}</p>
+                                            <div className="text-gray-600 whitespace-pre-wrap">
+                                                {userData.bio || "No bio added yet."}
+                                            </div>
                                         )}
                                     </div>
 
@@ -286,21 +370,21 @@ const Profile = () => {
                                             className="text-center p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg"
                                             whileHover={{ scale: 1.05 }}
                                         >
-                                            <div className="text-2xl font-bold text-blue-600">{userData.id.blogsWritten}</div>
+                                            <div className="text-2xl font-bold text-blue-600">{userData.blogsWritten}</div>
                                             <div className="text-sm text-gray-600">Masterpieces</div>
                                         </motion.div>
                                         <motion.div
                                             className="text-center p-4 bg-gradient-to-r from-green-100 to-teal-100 rounded-lg"
                                             whileHover={{ scale: 1.05 }}
                                         >
-                                            <div className="text-2xl font-bold text-green-600">{userData.id.followers}</div>
+                                            <div className="text-2xl font-bold text-green-600">{userData.followers}</div>
                                             <div className="text-sm text-gray-600">Followers</div>
                                         </motion.div>
                                         <motion.div
                                             className="text-center p-4 bg-gradient-to-r from-pink-100 to-orange-100 rounded-lg"
                                             whileHover={{ scale: 1.05 }}
                                         >
-                                            <div className="text-2xl font-bold text-pink-600">{userData.id.following}</div>
+                                            <div className="text-2xl font-bold text-pink-600">{userData.following}</div>
                                             <div className="text-sm text-gray-600">Following</div>
                                         </motion.div>
                                         <motion.div
@@ -308,8 +392,17 @@ const Profile = () => {
                                             whileHover={{ scale: 1.05 }}
                                             onClick={() => setShowStatusDropdown(!showStatusDropdown)}
                                         >
-                                            <div className="text-2xl font-bold text-purple-600">{userData.id.status.split(' ')[0]}</div>
-                                            <div className="text-sm text-gray-600">{userData.id.status.split(' ').slice(1).join(' ')}</div>
+                                            {userData.status && userData.status.trim() !== "" ? (
+                                                <>
+                                                    <div className="text-2xl font-bold text-purple-600">{userData.status.split(' ')[0]}</div>
+                                                    <div className="text-sm text-gray-600">{userData.status.split(' ').slice(1).join(' ')}</div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="text-2xl font-bold text-purple-600">➕</div>
+                                                    <div className="text-sm text-gray-600">Set Status</div>
+                                                </>
+                                            )}
                                             <AnimatePresence>
                                                 {showStatusDropdown && (
                                                     <motion.div
@@ -361,20 +454,26 @@ const Profile = () => {
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="text-center">
-                                <img
-                                    src={userData.id.photoURL}
-                                    alt="Profile"
-                                    className="w-48 h-48 rounded-full object-cover mx-auto mb-6 shadow-lg"
-                                />
+                                <div className="w-48 h-48 rounded-full overflow-hidden mx-auto mb-6 shadow-lg bg-gray-200">
+                                    <img
+                                        src={userData.photoURL}
+                                        alt="Profile Picture"
+                                        className="w-full h-full object-cover"
+                                        referrerPolicy='no-referrer'
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.nextSibling.style.display = 'flex';
+                                        }}
+                                        onLoad={(e) => {
+                                            e.target.nextSibling.style.display = 'none';
+                                        }}
+                                    />
+                                    {/* Fallback avatar for modal */}
+                                    <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-4xl font-bold">
+                                        {userData.displayName ? userData.displayName.charAt(0).toUpperCase() : 'U'}
+                                    </div>
+                                </div>
                                 <div className="flex gap-4 justify-center">
-                                    <motion.button
-                                        className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold"
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        onClick={() => setShowPhotoModal(false)}
-                                    >
-                                        View Only
-                                    </motion.button>
                                     <motion.label
                                         className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold cursor-pointer"
                                         whileHover={{ scale: 1.05 }}

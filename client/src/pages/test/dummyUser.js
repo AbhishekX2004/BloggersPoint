@@ -28,5 +28,6 @@ const userStatuses = [
   "🌙 Late Night Writer",
 ];
 
+const tags = [ "Food", "Travel", "Lifestyle", "Technology", "Health", "Education", "Entertainment", "Finance", "Sports", "Fashion", "Art", "Music", "Gaming", "Science", "Environment", "Politics", "History", "Books", "Movies", "Photography", "DIY", "Parenting", "Pets", "Wellness", "Self-Improvement", "Mental Health", "Relationships", "Career", "Personal Finance", "Hobbies", "Crafts", "Gardening", "Cooking", "Baking", "Fitness", "Nutrition", "Travel Tips", "Adventure", "Culture", "Social Issues", "Technology Trends", "Innovation", "Startups", "Entrepreneurship", "Marketing", "Business", "Leadership", "Productivity", "Time Management", "Work-Life Balance", "Remote Work", "Sustainability", "Climate Change", "Wildlife Conservation", "Urban Living", "Rural Life", "Community", "Volunteering", "Philanthropy", "Spirituality", "Mindfulness", "Meditation", "Yoga", "Art Therapy", "Music Therapy" ];
 
-export { dummyUser, userStatuses };
+export { dummyUser, userStatuses, tags };
