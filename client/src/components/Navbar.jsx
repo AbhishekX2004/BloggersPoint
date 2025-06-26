@@ -201,7 +201,29 @@ const Navbar = () => {
           </button>
         </div>
 
-        <div className="flex flex-col justify-between h-full p-5">
+        <div className="flex flex-col justify-between p-3">
+          {/* Authentication Section - Mobile (Bottom) */}
+          {!loading && (
+            <div className="border-blue-800/50">
+              {user && userProfile && (
+                // Show profile with photo and name
+                <div 
+                  onClick={handleProfileClick}
+                  className="flex items-center space-x-3 p-2 hover:bg-blue-950/50 rounded-md cursor-pointer transition-colors"
+                >
+                  <img
+                    src={userProfile.photoURL}
+                    alt="Profile"
+                    referrerPolicy='no-referrer'
+                    className="w-12 h-12 rounded-full border-2 border-blue-400 object-cover"
+                  />
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{userProfile.displayName || 'User'}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {/* Navigation Links */}
           <div className="space-y-2">
             <p className="text-blue-400 hover:bg-blue-950/50 px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer" onClick={() => { navigate('/'); setIsMenuOpen(false); }}>
@@ -215,28 +237,11 @@ const Navbar = () => {
             </a>
           </div>
 
-          {/* Authentication Section - Mobile (Bottom) */}
           {!loading && (
-            <div className="border-t border-blue-800/50 pt-4">
-              {user && userProfile ? (
-                // Show profile with photo and name
-                <div 
-                  onClick={handleProfileClick}
-                  className="flex items-center space-x-3 p-3 hover:bg-blue-950/50 rounded-md cursor-pointer transition-colors"
-                >
-                  <img
-                    src={userProfile.photoURL}
-                    alt="Profile"
-                    referrerPolicy='no-referrer'
-                    className="w-12 h-12 rounded-full border-2 border-blue-400 object-cover"
-                  />
-                  <div className="flex-1">
-                    <p className="text-white font-medium">{userProfile.displayName || 'User'}</p>
-                  </div>
-                </div>
-              ) : (
+            <div className="pt-3 border-blue-800/50">
+              {!user && !userProfile && (                
                 // Show Get Started and Login buttons
-                <div className="space-y-3">sasdfg
+                <div className="space-y-3">
                   <button
                     onClick={handleGetStarted}
                     className="w-full bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 px-4 py-3 rounded-md text-white font-medium transition-all transform hover:scale-105"
