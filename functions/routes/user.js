@@ -305,4 +305,41 @@ router.put("/lastLogin", async (req, res) => {
   }
 });
 
+// User Interests
+router.get("/interests", async (req, res) => {
+  try {
+    const {uid} = req.query;
+    if (!uid) return res.status(400).json({status: "error", message: "UID is required"});
+
+    const docRef = db.collection("users").doc(uid).collection("personalize").doc("topics");
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return res.status(404).json({status: "error", message: "Interests not found"});
+    }
+
+    const interests = docSnap.data().interests || [];
+    return res.status(200).json({status: "success", interests});
+  } catch (err) {
+    return res.status(500).json({status: "error", message: err.message});
+  }
+});
+
+// Update user interests
+router.post("/interests", async (req, res) => {
+  try {
+    const {uid, interests} = req.body;
+    if (!uid || !Array.isArray(interests)) {
+      return res.status(400).json({status: "error", message: "UID and interests array are required"});
+    }
+
+    const docRef = db.collection("users").doc(uid).collection("personalize").doc("topics");
+    await docRef.update({interests});
+
+    return res.status(200).json({status: "success", message: "Interests updated successfully"});
+  } catch (err) {
+    return res.status(500).json({status: "error", message: err.message});
+  }
+});
+
 module.exports = router;

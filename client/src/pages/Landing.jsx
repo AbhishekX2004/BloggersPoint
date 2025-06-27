@@ -132,7 +132,7 @@ const LandingPage = () => {
             >
               Welcome to{' '}
               <motion.span
-                className=" text-5xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+                className="lg:text-6xl text-5xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
                 animate={{
                   backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
                 }}

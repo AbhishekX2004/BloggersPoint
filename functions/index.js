@@ -13,9 +13,13 @@ app.use(express.urlencoded({extended: true}));
 const userRoutes = require("./routes/user");
 const followRoutes = require("./routes/follow");
 const blogRoutes = require("./routes/blogs");
+const paramsRoutes = require("./routes/systemParams");
+const writerExploreRoute = require("./routes/writerExplore");
 
 app.use("/user", userRoutes);
 app.use("/social", followRoutes);
 app.use("/blog", blogRoutes);
+app.use("/params", paramsRoutes);
+app.use("/writer", writerExploreRoute);
 
 exports.api = onRequest(app);

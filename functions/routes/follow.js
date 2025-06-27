@@ -121,4 +121,38 @@ router.post("/unfollow", async (req, res) => {
   }
 });
 
+// Get Following List
+router.get("/following", async (req, res) => {
+  const {uid} = req.query;
+
+  if (!uid) {
+    return res.status(400).json({error: "UID is required."});
+  }
+
+  try {
+    const personalizeRef = db.collection("users").doc(uid).collection("personalize").doc("follows");
+    const docSnap = await personalizeRef.get();
+
+    if (!docSnap.exists) {
+      return res.status(200).json({
+        status: "success",
+        following: []});
+    }
+
+    const following = docSnap.data().following || [];
+
+    return res.status(200).json({
+      status: "success",
+      following,
+    });
+  } catch (error) {
+    console.error("Error fetching following list:", error);
+    return res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
+  }
+});
+
+
 module.exports = router;
