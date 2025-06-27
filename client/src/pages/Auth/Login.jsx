@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FloatingParticals from '../../components/FloatingParticals';
-import { handleGoogleLogin } from './googleOAuth';
+import { handleGoogleLogin, getCurrentUser } from './googleOAuth';
 
 const Login = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -13,7 +13,19 @@ const Login = () => {
 
   useEffect(() => {
     setIsVisible(true);
-  }, []);
+
+    // Check if the user is already logged in
+    const checkAuthState = async () => {
+      const user = await getCurrentUser();
+      if (user) {
+        // User is already logged in, navigate to the profile page
+        navigate('/profile');
+        window.scrollTo(0, 0);
+      }
+    };
+
+    checkAuthState();
+  }, [navigate]);
 
   const onGoogleLogin = async () => {
     setIsLoading(true);

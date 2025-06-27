@@ -369,7 +369,7 @@ const LandingPage = () => {
               Join thousands of writers sharing their stories on BloggersPoint
             </motion.p>
             <motion.button
-              className="bg-gray-800 px-8 py-3 rounded-lg font-semibold shadow-lg relative overflow-hidden"
+              className="bg-gray-100 px-8 py-3 rounded-lg font-semibold shadow-lg relative overflow-hidden"
               variants={fadeInUp}
               whileHover={{
                 scale: 1.05,
@@ -379,7 +379,7 @@ const LandingPage = () => {
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
               onClick={() => navigate('/register')}
             >
-              <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Join Now - It's Free!
               </span>
             </motion.button>
