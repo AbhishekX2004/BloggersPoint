@@ -19,25 +19,25 @@ const IntroPage = () => {
   // Global array of trendy topics (will be replaced by backend AI)
   const trendyTopics = [
     { id: 1, name: 'Artificial Intelligence', emoji: '🤖', color: 'from-blue-500 to-cyan-500' },
-    { id: 2, name: 'Web Development', emoji: '💻', color: 'from-green-500 to-teal-500' },
-    { id: 3, name: 'Climate Change', emoji: '🌍', color: 'from-emerald-500 to-green-600' },
-    { id: 4, name: 'Mental Health', emoji: '🧠', color: 'from-purple-500 to-pink-500' },
+    { id: 2, name: 'Web Development', emoji: '🌐', color: 'from-green-500 to-teal-500' },
+    { id: 3, name: 'Education', emoji: '📚', color: 'from-emerald-500 to-green-600' },
+    { id: 4, name: 'Exercise', emoji: '🏋️', color: 'from-purple-500 to-pink-500' },
     { id: 5, name: 'Cryptocurrency', emoji: '₿', color: 'from-orange-500 to-red-500' },
-    { id: 6, name: 'Space Exploration', emoji: '🚀', color: 'from-indigo-500 to-purple-600' }
+    { id: 6, name: 'Quantum Computing', emoji: '⚛️', color: 'from-indigo-500 to-purple-600' }
   ];
 
   const steps = [
     {
       title: "What should we call you?",
-      subtitle: "Let's personalize your experience"
+      subtitle: "Let's personalize your experience!"
     },
     {
       title: "What interests you?",
-      subtitle: "Pick topics you'd love to read about"
+      subtitle: "Pick topics you'd love to read about!"
     },
     {
       title: "All set!",
-      subtitle: "Let's create your perfect blogging experience"
+      subtitle: "Let's create your perfect blogging experience!"
     }
   ];
 
@@ -94,7 +94,7 @@ const IntroPage = () => {
     setSelectedInterests(prev => {
       // Check if interest already exists to ensure uniqueness
       const existingIndex = prev.findIndex(item => item.id === interest.id);
-      
+
       if (existingIndex !== -1) {
         // Remove if already selected
         return prev.filter(item => item.id !== interest.id);
@@ -118,11 +118,11 @@ const IntroPage = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
       // Create unique interests array with just the names
       const uniqueInterests = [...new Set(selectedInterests.map(interest => interest.name))];
-      
+
       const response = await axios.post(`${API}/user/gs`, {
         uid: user.uid,
         displayName: displayName.trim(),
@@ -130,14 +130,14 @@ const IntroPage = () => {
       });
       if (response.status !== 201) {
         throw new Error('Failed to save getting started information');
-      }     
+      }
       console.log('Setup successful:', response.data);
       navigate('/profile');
     } catch (error) {
       console.error('Setup failed:', error);
-      
+
       // TODO : Show error notification to user
-      
+
       navigate('/profile');
     } finally {
       setIsLoading(false);
@@ -173,25 +173,25 @@ const IntroPage = () => {
       {/* Floating background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-200 to-purple-200 rounded-full opacity-20"
+          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full opacity-20"
           animate={{
             scale: [1, 1.2, 1],
             rotate: [0, 180, 360],
           }}
           transition={{
-            duration: 20,
+            duration: 5,
             repeat: Infinity,
             ease: "linear"
           }}
         />
         <motion.div
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pink-200 to-orange-200 rounded-full opacity-20"
+          className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full opacity-20"
           animate={{
             scale: [1.2, 1, 1.2],
             rotate: [360, 180, 0],
           }}
           transition={{
-            duration: 25,
+            duration: 10,
             repeat: Infinity,
             ease: "linear"
           }}
@@ -210,11 +210,10 @@ const IntroPage = () => {
             {steps.map((_, index) => (
               <motion.div
                 key={index}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                  index <= currentStep
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${index <= currentStep
                     ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                     : 'bg-gray-200 text-gray-500'
-                }`}
+                  }`}
                 animate={{
                   scale: index === currentStep ? 1.2 : 1,
                 }}
@@ -283,11 +282,10 @@ const IntroPage = () => {
                   <motion.button
                     key={topic.id}
                     onClick={() => handleInterestToggle(topic)}
-                    className={`p-6 rounded-2xl border-2 transition-all duration-300 ${
-                      isSelected
+                    className={`p-6 rounded-2xl border-2 transition-all duration-300 ${isSelected
                         ? 'border-blue-500 bg-gradient-to-r ' + topic.color + ' text-white shadow-lg'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
+                      }`}
                     variants={itemVariants}
                     whileHover={{ scale: 1.05, y: -5 }}
                     whileTap={{ scale: 0.95 }}
@@ -312,12 +310,25 @@ const IntroPage = () => {
                 🎉
               </motion.div>
               <div className="bg-gray-50 rounded-2xl p-6 text-left">
-                <h3 className="font-semibold text-gray-800 mb-3">Your Profile Summary:</h3>
-                <p className="text-gray-600 mb-3">
-                  <strong>Name:</strong> {displayName}
-                </p>
+                <h3 className="font-semibold text-gray-800 mb-3">Welcome abord&nbsp;
+                  <motion.span
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+                    animate={{
+                      backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                    style={{
+                      backgroundSize: '200% 200%'
+                    }}
+                  >
+                    {displayName}
+                  </motion.span>
+                </h3>
                 <div className="text-gray-600">
-                  <strong>Interests:</strong>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {selectedInterests.map((interest) => (
                       <span
@@ -341,11 +352,10 @@ const IntroPage = () => {
         >
           <motion.button
             onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-            className={`px-6 py-3 rounded-xl font-semibold transition-colors ${
-              currentStep === 0
+            className={`px-6 py-3 rounded-xl font-semibold transition-colors ${currentStep === 0
                 ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-            }`}
+              }`}
             disabled={currentStep === 0}
             whileHover={currentStep > 0 ? { scale: 1.05 } : {}}
             whileTap={currentStep > 0 ? { scale: 0.95 } : {}}
@@ -356,11 +366,10 @@ const IntroPage = () => {
           <motion.button
             onClick={currentStep === steps.length - 1 ? handleFinish : handleNext}
             disabled={!canProceed() || isLoading}
-            className={`px-8 py-3 rounded-xl font-semibold shadow-lg transition-all ${
-              canProceed() && !isLoading
+            className={`px-8 py-3 rounded-xl font-semibold shadow-lg transition-all ${canProceed() && !isLoading
                 ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-xl'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+              }`}
             whileHover={canProceed() && !isLoading ? { scale: 1.05, y: -2 } : {}}
             whileTap={canProceed() && !isLoading ? { scale: 0.95 } : {}}
           >

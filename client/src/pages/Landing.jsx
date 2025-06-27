@@ -105,7 +105,7 @@ const LandingPage = () => {
     const user = auth.currentUser;
     
     if (user) {
-      navigate('/profile');
+      navigate('/write');
     } else {
       navigate('/login');
     }

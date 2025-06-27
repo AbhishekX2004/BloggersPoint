@@ -13,6 +13,7 @@ import BlogPostPage from './pages/Blog'
 import Profile from './pages/Profile'
 import IntroPage from './pages/Auth/IntroPage'
 import BlogCreator from './pages/BlogCreator'
+import MyBlogs from './pages/MyBlogs'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
 				<Route path="/blog" element={<BlogPostPage />} />
 				<Route path="/getting-started" element={<IntroPage />} />
 				<Route path="/write" element={<BlogCreator />} />
+				<Route path="/my-blogs" element={<MyBlogs />} />
 
 				{/* 
 
