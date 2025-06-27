@@ -77,7 +77,7 @@ const Interests = ({ onClose, uid }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60"
         onClick={onClose}
       >
         <motion.div
