@@ -4,6 +4,7 @@
 const express = require("express");
 const router = express.Router();
 const {getFirestore} = require("firebase-admin/firestore");
+const isInsult = require("../AI/KolasAI");
 const db = getFirestore();
 
 // Create a new blog
@@ -58,6 +59,24 @@ router.post("/create", async (req, res) => {
   }
 
   try {
+    // Check for profanity in title and content
+    const titleContainsProfanity = await isInsult(title);
+    const contentContainsProfanity = await isInsult(content);
+
+    if (titleContainsProfanity) {
+      return res.status(400).json({
+        error: "Blog title contains inappropriate content. Please revise and try again.",
+        field: "title",
+      });
+    }
+
+    if (contentContainsProfanity) {
+      return res.status(400).json({
+        error: "Blog content contains inappropriate content. Please revise and try again.",
+        field: "content",
+      });
+    }
+
     // Check if user exists
     const userRef = db.collection("users").doc(uid);
     const userDoc = await userRef.get();
@@ -220,15 +239,6 @@ router.delete("/delete", async (req, res) => {
 
     commentsSnapshot.docs.forEach((commentDoc) => {
       batch.delete(commentDoc.ref);
-    });
-
-    // Delete any likes subcollection if it exists
-    // (Assuming blogs might have likes stored as subcollections)
-    const likesRef = blogRef.collection("likes");
-    const likesSnapshot = await likesRef.get();
-
-    likesSnapshot.docs.forEach((likeDoc) => {
-      batch.delete(likeDoc.ref);
     });
 
     // Commit the batch operation

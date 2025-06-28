@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { motion } from 'framer-motion';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { auth } from "../firebaseConfig";
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ScrollToTop from '../components/ScrollToTop';
@@ -9,6 +10,7 @@ import FloatingParticals from '../components/FloatingParticals';
 const API = import.meta.env.VITE_API;
 
 const MyBlogs = () => {
+    const [user, setUser] = useState();
     const [blogs, setBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -26,8 +28,24 @@ const MyBlogs = () => {
     const navigate = useNavigate();
     const observerRef = useRef();
 
-    // Get user ID from localStorage or auth context
-    const uid = localStorage.getItem('uid') || 'user123'; // Replace with actual auth
+    useEffect(() => {
+        // Check authentication
+        const unsubscribe = auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                navigate('/login');
+            }
+            try {
+                setUser(user);
+                setLoading(false);
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+                setLoading(false);
+                // TODO : Show error message to user.
+            }
+        });
+        return () => unsubscribe();
+    }, [navigate]);
+
 
     // Animation variants
     const fadeInUp = {
@@ -98,7 +116,7 @@ const MyBlogs = () => {
                 params.cursor = cursorValue;
             }
 
-            const response = await axios.get(`${API}/writer/user-blogs/${uid}`, {
+            const response = await axios.get(`${API}/writer/user-blogs/${user.uid}`, {
                 params
             });
 
@@ -138,7 +156,7 @@ const MyBlogs = () => {
 
             const response = await axios.delete(`${API}/blog/delete`, {
                 data: {
-                    uid,
+                    uid: user.uid,
                     blogId
                 }
             });
@@ -176,9 +194,11 @@ const MyBlogs = () => {
 
     // Initial load and when filters change
     useEffect(() => {
-        setCursor(null);
-        fetchBlogs(null, true);
-    }, [filters]);
+        if (user) {
+            setCursor(null);
+            fetchBlogs(null, true);
+        }
+    }, [filters, user]);
 
     // Handle filter changes
     const handleFilterChange = (key, value) => {
@@ -206,47 +226,62 @@ const MyBlogs = () => {
                 {/* Header with actions */}
                 <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                        <h3
-                            className="text-xl font-bold text-gray-900 mb-2 cursor-pointer hover:text-blue-600 line-clamp-2"
-                            onClick={() => handleBlogClick(blog.blogId)}
-                        >
-                            {blog.title}
-                        </h3>
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>Created: {formatDate(blog.createdAt)}</span>
-                            {blog.updatedAt && blog.updatedAt !== blog.createdAt && (
-                                <span>Updated: {formatDate(blog.updatedAt)}</span>
+                        <div>
+                            {blog.titleURL && (
+                                <img
+                                    src={blog.titleURL}
+                                    alt={blog.title}
+                                    className="w-full h-48 object-cover rounded-lg mb-2"
+                                />
                             )}
                         </div>
+                        <div className='flex justify-between'>
+                            <div>
+                                <h3
+                                    className="text-xl font-bold text-gray-900 mb-2 cursor-pointer hover:text-blue-600 line-clamp-2"
+                                    onClick={() => handleBlogClick(blog.blogId)}
+                                >
+                                    {blog.title}
+                                </h3>
+                                <div className="flex items-center space-x-4 text-sm text-gray-500">
+                                    <span>Created: {formatDate(blog.createdAt)}</span>
+                                    {blog.updatedAt && blog.updatedAt !== blog.createdAt && (
+                                        <span>Updated: {formatDate(blog.updatedAt)}</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div className="flex items-center space-x-2 ml-4">
+                                <motion.button
+                                    className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50"
+                                    onClick={() => handleEditClick(blog.blogId)}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    title="Edit blog"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </motion.button>
+
+                                <motion.button
+                                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
+                                    onClick={() => setDeleteConfirm(blog.blogId)}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    title="Delete blog"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </motion.button>
+                            </div>
+                        </div>                        
                     </div>
 
-                    {/* Action buttons */}
-                    <div className="flex items-center space-x-2 ml-4">
-                        <motion.button
-                            className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50"
-                            onClick={() => handleEditClick(blog.blogId)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            title="Edit blog"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                        </motion.button>
-
-                        <motion.button
-                            className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50"
-                            onClick={() => setDeleteConfirm(blog.blogId)}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            title="Delete blog"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </motion.button>
-                    </div>
                 </div>
+
 
                 {/* Content */}
                 <p
@@ -380,18 +415,18 @@ const MyBlogs = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">My&nbsp;
-                                <motion.span 
+                                <motion.span
                                     className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-                                    animate={{ 
-                                    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+                                    animate={{
+                                        backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
                                     }}
-                                    transition={{ 
-                                    duration: 3, 
-                                    repeat: Infinity,
-                                    ease: "linear"
+                                    transition={{
+                                        duration: 3,
+                                        repeat: Infinity,
+                                        ease: "linear"
                                     }}
                                     style={{
-                                    backgroundSize: '200% 200%'
+                                        backgroundSize: '200% 200%'
                                     }}
                                 >
                                     Blogs
