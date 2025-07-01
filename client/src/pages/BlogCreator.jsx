@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
-import { storage, auth } from '../firebaseConfig'; // Import auth from firebase config
+import { storage, auth } from '../firebaseConfig';
 import ScrollToTop from '../components/ScrollToTop';
 import FloatingParticals from '../components/FloatingParticals';
+import ImgGen from './ImgGen';
 
 const BlogCreator = () => {
   const [user, setUser] = useState(null);
@@ -23,6 +24,10 @@ const BlogCreator = () => {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadingTitle, setUploadingTitle] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  
+  // AI Image Modal states
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [aiModalType, setAiModalType] = useState('media'); // 'title' or 'media'
 
   const navigate = useNavigate();
   const API = import.meta.env.VITE_API;
@@ -135,6 +140,56 @@ const BlogCreator = () => {
     }
   };
 
+  // Handle AI Generated Image
+  const handleAIImageGenerated = async (file, type) => {
+    if (!user) return;
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (type === 'title') {
+        setTitleImage(e.target.result);
+      } else {
+        if (mediaFiles.length < 3) {
+          setMediaFiles([...mediaFiles, e.target.result]);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to Firebase in background
+    try {
+      if (type === 'title') {
+        setUploadingTitle(true);
+        const timestamp = Date.now();
+        const fileName = `blogs/${user.uid}/ai_title_${timestamp}.jpg`;
+        const url = await uploadToFirebase(file, fileName);
+        setTitleImageUrl(url);
+        setUploadingTitle(false);
+      } else {
+        if (mediaFiles.length < 3) {
+          setUploadingMedia(true);
+          const timestamp = Date.now();
+          const fileName = `blogs/${user.uid}/ai_media_${timestamp}.jpg`;
+          const url = await uploadToFirebase(file, fileName);
+          setMediaUrls(prev => [...prev, url]);
+          setUploadingMedia(false);
+        }
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+      alert('Upload failed. Please try again.');
+      if (type === 'title') {
+        setUploadingTitle(false);
+        setTitleImage(null);
+      } else {
+        setUploadingMedia(false);
+        // Remove the preview that was just added
+        setMediaFiles(prev => prev.slice(0, -1));
+      }
+    }
+  };
+
   const handleRemoveMedia = (index) => {
     setMediaFiles(mediaFiles.filter((_, i) => i !== index));
     setMediaUrls(mediaUrls.filter((_, i) => i !== index));
@@ -143,6 +198,11 @@ const BlogCreator = () => {
   const handleRemoveTitleImage = () => {
     setTitleImage(null);
     setTitleImageUrl('');
+  };
+
+  const openAIModal = (type) => {
+    setAiModalType(type);
+    setIsAIModalOpen(true);
   };
 
   const handlePublish = async () => {
@@ -337,20 +397,29 @@ const BlogCreator = () => {
                     <div>
                       <div className="text-4xl mb-2">🖼️</div>
                       <p className="text-gray-500 mb-4">Upload a title image (Optional)</p>
-                      <input
-                        type="file"
-                        accept="image/*,video/*,.gif"
-                        onChange={(e) => handleFileUpload(e, true)}
-                        className="hidden"
-                        id="title-image"
-                        disabled={uploadingTitle}
-                      />
-                      <label
-                        htmlFor="title-image"
-                        className={`${uploadingTitle ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'} text-white px-4 py-2 rounded-lg transition-colors`}
-                      >
-                        {uploadingTitle ? 'Uploading...' : 'Choose Image'}
-                      </label>
+                      <div className="flex gap-3 justify-center">
+                        <input
+                          type="file"
+                          accept="image/*,video/*,.gif"
+                          onChange={(e) => handleFileUpload(e, true)}
+                          className="hidden"
+                          id="title-image"
+                          disabled={uploadingTitle}
+                        />
+                        <label
+                          htmlFor="title-image"
+                          className={`${uploadingTitle ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'} text-white px-4 py-2 rounded-lg transition-colors`}
+                        >
+                          {uploadingTitle ? 'Uploading...' : '📁 Choose Image'}
+                        </label>
+                        <button
+                          onClick={() => openAIModal('title')}
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg transition-all transform hover:scale-105"
+                          disabled={uploadingTitle}
+                        >
+                          ✨ Generate AI Image
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -438,7 +507,6 @@ const BlogCreator = () => {
                       >
                         <span className="text-sm leading-none translate-y-[-2px]">x</span>
                       </button>
-
                     </div>
                   ))}
 
@@ -446,20 +514,29 @@ const BlogCreator = () => {
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
                       <div className="text-2xl mb-2">📷</div>
                       <p className="text-gray-500 text-sm mb-2">Add Media</p>
-                      <input
-                        type="file"
-                        accept="image/*,video/*,.gif"
-                        onChange={(e) => handleFileUpload(e, false)}
-                        className="hidden"
-                        id={`media-${mediaFiles.length}`}
-                        disabled={uploadingMedia}
-                      />
-                      <label
-                        htmlFor={`media-${mediaFiles.length}`}
-                        className={`${uploadingMedia ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-600 hover:bg-gray-700 cursor-pointer'} text-white px-3 py-1 rounded text-sm transition-colors`}
-                      >
-                        {uploadingMedia ? 'Uploading...' : 'Upload'}
-                      </label>
+                      <div className="flex flex-col gap-2">
+                        <input
+                          type="file"
+                          accept="image/*,video/*,.gif"
+                          onChange={(e) => handleFileUpload(e, false)}
+                          className="hidden"
+                          id={`media-${mediaFiles.length}`}
+                          disabled={uploadingMedia}
+                        />
+                        <label
+                          htmlFor={`media-${mediaFiles.length}`}
+                          className={`${uploadingMedia ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-600 hover:bg-gray-700 cursor-pointer'} text-white px-3 py-1 rounded text-sm transition-colors`}
+                        >
+                          {uploadingMedia ? 'Uploading...' : '📁 Upload'}
+                        </label>
+                        <button
+                          onClick={() => openAIModal('media')}
+                          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-3 py-1 rounded text-sm transition-all transform hover:scale-105"
+                          disabled={uploadingMedia}
+                        >
+                          ✨ AI Generate
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -484,6 +561,16 @@ const BlogCreator = () => {
           /* Preview Mode */
           <BlogPreview />
         )}
+
+        {/* AI Image Generation Modal */}
+        <ImgGen
+          isOpen={isAIModalOpen}
+          onClose={() => setIsAIModalOpen(false)}
+          onImageGenerated={handleAIImageGenerated}
+          type={aiModalType}
+          API={API}
+          user={user}
+        />
       </motion.div>
       <ScrollToTop />
     </div>

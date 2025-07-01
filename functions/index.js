@@ -17,10 +17,12 @@ const paramsRoutes = require("./routes/systemParams");
 const writerExploreRoute = require("./routes/writerExplore");
 const imageGenRoute = require("./routes/genImg");
 const commentsRoutes = require("./routes/comments");
+const likesRoutes = require("./routes/likes");
 
 app.use("/user", userRoutes);
 app.use("/social", followRoutes);
 app.use("/blog", blogRoutes);
+app.use("/blog", likesRoutes);
 app.use("/params", paramsRoutes);
 app.use("/writer", writerExploreRoute);
 app.use("/gen", imageGenRoute);

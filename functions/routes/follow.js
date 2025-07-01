@@ -5,7 +5,7 @@ const express = require("express");
 const router = express.Router();
 const {getFirestore} = require("firebase-admin/firestore");
 const db = getFirestore();
-const admin = require("firebase-admin");
+const {removeFromArray, addToArray} = require("../utils/arrayFunctions");
 
 // Follow a user
 router.post("/follow", async (req, res) => {
@@ -48,12 +48,12 @@ router.post("/follow", async (req, res) => {
 
     // Add the follow relationship using set with merge to create document if it doesn't exist
     await personalizeRef.set({
-      following: admin.firestore.FieldValue.arrayUnion(followUid),
+      following: addToArray(personalizeDoc.data().following, followUid),
     }, {merge: true});
 
     // Update the followed user's followers count using merge to avoid overwriting
     await followUserRef.set({
-      followers: admin.firestore.FieldValue.increment(1),
+      followers: followUserDoc.data().followers + 1,
     }, {merge: true});
 
     return res.status(200).json({message: "Successfully followed the user."});
@@ -106,12 +106,12 @@ router.post("/unfollow", async (req, res) => {
 
     // Remove the follow relationship
     await personalizeRef.update({
-      following: admin.firestore.FieldValue.arrayRemove(unfollowUid),
+      following: removeFromArray(personalizeDoc.data().following, unfollowUid),
     });
 
     // Decrease the unfollowed user's followers count
     await unfollowUserRef.set({
-      followers: admin.firestore.FieldValue.increment(-1),
+      followers: unfollowUserDoc.data().followers - 1,
     }, {merge: true});
 
     return res.status(200).json({message: "Successfully unfollowed the user."});
@@ -151,6 +151,33 @@ router.get("/following", async (req, res) => {
       status: "error",
       message: error.message,
     });
+  }
+});
+
+// Check Following
+router.get("/checkfollow", async (req, res) => {
+  const {uid, authorUid} = req.query;
+
+  if (!uid || !authorUid) {
+    return res.status(400).json({error: "Missing required fields."});
+  }
+
+  if (uid === authorUid) {
+    return res.status(200).json({isFollowing: false});
+  }
+
+  try {
+    const personalizeRef = db.collection("users").doc(uid).collection("personalize").doc("follows");
+    const personalizeDoc = await personalizeRef.get();
+
+    const followingList = personalizeDoc.exists ? personalizeDoc.data().following || [] : [];
+
+    const isFollowing = followingList.includes(authorUid);
+
+    return res.status(200).json({isFollowing});
+  } catch (error) {
+    console.error("Error checking follow status:", error);
+    return res.status(500).json({error: "Internal Server Error", message: error.message});
   }
 });
 

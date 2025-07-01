@@ -257,4 +257,57 @@ router.delete("/delete", async (req, res) => {
   }
 });
 
+// Get a blog
+router.get("/", async (req, res) => {
+  const {blogId} = req.query;
+
+  try {
+    // Validate blogId parameter
+    if (!blogId) {
+      return res.status(400).json({error: "blogId is required"});
+    }
+
+    // Get blog document
+    const blogDoc = await db.collection("blogs").doc(blogId).get();
+
+    // Check if blog exists
+    if (!blogDoc.exists) {
+      return res.status(404).json({error: "Blog not found"});
+    }
+
+    const blogData = blogDoc.data();
+    const {uid, ...filteredBlogData} = blogData;
+
+    // Validate uid exists in blog data
+    if (!uid) {
+      return res.status(500).json({error: "Blog missing author information"});
+    }
+
+    // Get user document
+    const userDoc = await db.collection("users").doc(uid).get();
+
+    // Check if user exists
+    if (!userDoc.exists) {
+      return res.status(404).json({error: "Author not found"});
+    }
+
+    const userData = userDoc.data();
+
+    // Construct response data
+    const responseData = {
+      blogData: filteredBlogData,
+      authorUid: uid,
+      author: userData.displayName || "Unknown Author",
+      profilePicURL: userData.photoURL || null,
+      bio: userData.bio || "",
+      followers: userData.followers || 0,
+    };
+
+    return res.status(200).json(responseData);
+  } catch (error) {
+    console.error("Error fetching blog:", error);
+    return res.status(500).json({error: "Internal server error"});
+  }
+});
+
 module.exports = router;

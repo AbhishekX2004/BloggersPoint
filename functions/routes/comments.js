@@ -75,7 +75,7 @@ router.post("/create", async (req, res) => {
 
     // Update the blog's comment count
     await blogRef.update({
-      comments: db.FieldValue.increment(1),
+      comments: blogDoc.data().comments + 1,
     });
 
     return res.status(201).json({
@@ -89,6 +89,135 @@ router.post("/create", async (req, res) => {
       error: "Internal Server Error",
       message: error.message,
     });
+  }
+});
+
+// Get blog comments with cursor-based pagination
+router.get("/", async (req, res) => {
+  const {blogId, cursor, limit = 10} = req.query;
+
+  try {
+    // Validate required parameters
+    if (!blogId) {
+      return res.status(400).json({error: "blogId is required"});
+    }
+
+    // Validate limit
+    const parsedLimit = parseInt(limit);
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 50) {
+      return res.status(400).json({error: "limit must be between 1 and 50"});
+    }
+
+    // Check if blog exists
+    const blogDoc = await db.collection("blogs").doc(blogId).get();
+    if (!blogDoc.exists) {
+      return res.status(404).json({error: "Blog not found"});
+    }
+
+    // Build the query for comments subcollection
+    let commentsQuery = db
+        .collection("blogs")
+        .doc(blogId)
+        .collection("comments")
+        .orderBy("createdAt", "desc") // Order by creation time (newest first)
+        .limit(parsedLimit + 1); // Get one extra to check if there are more
+
+    // Apply cursor if provided
+    if (cursor) {
+      try {
+        const cursorDoc = await db
+            .collection("blogs")
+            .doc(blogId)
+            .collection("comments")
+            .doc(cursor)
+            .get();
+
+        if (cursorDoc.exists) {
+          commentsQuery = commentsQuery.startAfter(cursorDoc);
+        } else {
+          return res.status(400).json({error: "Invalid cursor - comment not found"});
+        }
+      } catch (error) {
+        return res.status(400).json({error: "Invalid cursor format"});
+      }
+    }
+
+    // Execute the query
+    const commentsSnapshot = await commentsQuery.get();
+    const comments = [];
+    let hasMore = false;
+    let nextCursor = null;
+
+    // Process the results
+    commentsSnapshot.docs.forEach((doc, index) => {
+      if (index < parsedLimit) {
+        const commentData = doc.data();
+        comments.push({
+          id: doc.id,
+          ...commentData,
+          createdAt: commentData.createdAt?.toDate?.() || commentData.createdAt,
+        });
+      } else {
+        // If we have more than the requested limit, there are more pages
+        hasMore = true;
+      }
+    });
+
+    // Set next cursor to the last document ID
+    if (hasMore && comments.length > 0) {
+      nextCursor = comments[comments.length - 1].id;
+    }
+
+    // Fetch user data for each comment (to get author info)
+    const commentsWithAuthors = await Promise.all(
+        comments.map(async (comment) => {
+          try {
+            if (comment.uid) {
+              const userDoc = await db.collection("users").doc(comment.uid).get();
+              if (userDoc.exists) {
+                const userData = userDoc.data();
+                return {
+                  ...comment,
+                  author: {
+                    displayName: userData.displayName || "Anonymous",
+                    photoURL: userData.photoURL || null,
+                  },
+                };
+              }
+            }
+            // Fallback if user not found
+            return {
+              ...comment,
+              author: {
+                displayName: "Anonymous",
+                photoURL: null,
+              },
+            };
+          } catch (error) {
+            console.error(`Error fetching user data for comment ${comment.id}:`, error);
+            return {
+              ...comment,
+              author: {
+                displayName: "Anonymous",
+                photoURL: null,
+              },
+            };
+          }
+        }),
+    );
+
+    // Construct response
+    const responseData = {
+      comments: commentsWithAuthors,
+      hasMore,
+      nextCursor,
+      total: comments.length,
+    };
+
+    return res.status(200).json(responseData);
+  } catch (error) {
+    console.error("Error fetching blog comments:", error);
+    return res.status(500).json({error: "Internal server error"});
   }
 });
 

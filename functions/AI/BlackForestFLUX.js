@@ -1,5 +1,5 @@
 /* eslint-disable max-len */
-require("dotenv").config();
+// require("dotenv").config();
 const axios = require("axios");
 
 /**

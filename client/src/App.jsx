@@ -9,7 +9,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import Explore from './pages/Explore'
-import BlogPostPage from './pages/Blog'
+import BlogPage from './pages/Blog'
 import Profile from './pages/Profile'
 import IntroPage from './pages/Auth/IntroPage'
 import BlogCreator from './pages/BlogCreator'
@@ -29,7 +29,7 @@ function App() {
 				<Route path="/register" element={<Register />} />
 				<Route path="/explore" element={<Explore />} />
 
-				<Route path="/blog" element={<BlogPostPage />} />
+				<Route path="/blogs/:blogId" element={<BlogPage />} />
 				<Route path="/getting-started" element={<IntroPage />} />
 				<Route path="/write" element={<BlogCreator />} />
 				<Route path="/my-blogs" element={<MyBlogs />} />

@@ -1,6 +1,6 @@
 /* eslint-disable max-len */
+// require("dotenv").config();
 const axios = require("axios");
-require("dotenv").config();
 
 /**
  * Profanity Filter - KolasAI
@@ -30,7 +30,7 @@ async function isInsult(message) {
     );
 
     const accessToken = tokenResponse.data.access_token;
-    console.log("Access Granted? ", !!accessToken);
+    console.log("Access: ", !!accessToken);
 
     // Step 2: Make prediction request
     const predictionResponse = await axios.post(PREDICT_URL,
@@ -49,32 +49,20 @@ async function isInsult(message) {
           },
         },
     );
-    console.log(predictionResponse);
+    console.log("Prediction: ", !!predictionResponse);
 
     // Step 3: Check if "Insult" is predicted
     if (predictionResponse.data.predictions && predictionResponse.data.predictions.length > 0) {
       const prediction = predictionResponse.data.predictions[0].prediction;
       const p = predictionResponse.data.predictions[0].probability;
-      return p >= 0.6 && prediction === "Insult";
+      console.log(prediction, " :: ", p);
+      return (prediction === "Insult" && p >= 0.6) || (prediction === "Neutral" && p <= 0.8) || (prediction === "Spam" && p <= 0.8);
     }
     return false;
   } catch (error) {
-    console.error("Error in isInsult function:", error);
+    console.error("Error in isInsult function:", error.message);
     return false; // Default to false on error
   }
 }
 
-// CommonJS export (for non-module projects)
 module.exports = isInsult;
-
-
-// eslint-disable-next-line require-jsdoc
-async function testMessages() {
-  const testCases = ["I will kill you!"];
-
-  for (const message of testCases) {
-    const result = await isInsult(message);
-    console.log(`"${message}" -> ${result}`);
-  }
-}
-testMessages();
