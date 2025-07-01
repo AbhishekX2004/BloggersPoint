@@ -11,7 +11,6 @@ import ScrollToTop from '../components/ScrollToTop';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebaseConfig';
 
-import { userStatuses } from './test/dummyUser';
 import Interests from './Interests';
 import Followings from './Followings';
 
@@ -19,6 +18,7 @@ const API = import.meta.env.VITE_API;
 
 const Profile = () => {
 	const navigate = useNavigate();
+	const [userStatuses, setUserStatuses] = useState([]);
 	const [uid, setUid] = useState('');
 	const [userData, setUserData] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -50,6 +50,22 @@ const Profile = () => {
 		});
 		return () => unsubscribe();
 	}, [navigate]);
+
+
+	useEffect(() => {
+	const getStatuses = async () => {
+		try {
+			const { data } = await axios.get(`${API}/params/status`);
+			setUserStatuses(data.statuses);
+		} catch (error) {
+			console.error('Error fetching statuses:', error);
+			// TODO: Show error message to user
+		}
+	};
+
+	getStatuses();
+	}, []);
+
 
 	const handleStatusUpdate = async (newStatus) => {
 		let oldStatus = userData.status || '';
@@ -165,8 +181,14 @@ const Profile = () => {
 	};
 
 	// Handle interests modal close
-	const handleFollowingClose = () => {
+	const handleFollowingClose = (followingCount) => {
 		setShowFollowingModal(false);
+		
+		// Update userData.following with the new count
+		setUserData(prevUserData => ({
+			...prevUserData,
+			following: followingCount
+		}));
 	};
 
 	const fadeInUp = {
@@ -449,6 +471,7 @@ const Profile = () => {
 											className="text-center p-4 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg cursor-pointer relative"
 											whileHover={{ scale: 1.05 }}
 											onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+											style={{ zIndex: showStatusDropdown ? 100 : 'auto' }}
 										>
 											{userData.status && userData.status.trim() !== "" ? (
 												<>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const Followings = ({ onClose, uid }) => {
   const [followings, setFollowings] = useState([]);
@@ -9,8 +10,21 @@ const Followings = ({ onClose, uid }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [userToUnfollow, setUserToUnfollow] = useState(null);
+  const navigate = useNavigate();
 
   const API = import.meta.env.VITE_API;
+
+  // Handle close with following count callback
+  const handleClose = () => {
+    onClose(followings.length);
+  };
+
+  // Handle user navigation
+  const handleUserClick = (userId) => {
+    navigate(`/public/user/${userId}`);
+  };
 
   useEffect(() => {
     const fetchFollowings = async () => {
@@ -54,28 +68,42 @@ const Followings = ({ onClose, uid }) => {
     fetchFollowings();
   }, [API, uid]);
 
-  const handleUnfollow = async (followingUid) => {
+  const handleUnfollowClick = (followingUid) => {
+    setUserToUnfollow(followingUid);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmUnfollow = async () => {
+    if (!userToUnfollow) return;
+
     try {
-      setActionLoading(prev => ({ ...prev, [followingUid]: true }));
+      setActionLoading(prev => ({ ...prev, [userToUnfollow]: true }));
       
       await axios.post(`${API}/social/unfollow`, {
         uid,
-        unfollowUid: followingUid
+        unfollowUid: userToUnfollow
       });
 
       // Update local state
-      setFollowings(prev => prev.filter(id => id !== followingUid));
+      setFollowings(prev => prev.filter(id => id !== userToUnfollow));
       setFollowingDetails(prev => {
         const updated = { ...prev };
-        delete updated[followingUid];
+        delete updated[userToUnfollow];
         return updated;
       });
     } catch (err) {
       console.error('Error unfollowing user:', err);
       setError('Failed to unfollow user. Please try again.');
     } finally {
-      setActionLoading(prev => ({ ...prev, [followingUid]: false }));
+      setActionLoading(prev => ({ ...prev, [userToUnfollow]: false }));
+      setShowConfirmDialog(false);
+      setUserToUnfollow(null);
     }
+  };
+
+  const handleCancelUnfollow = () => {
+    setShowConfirmDialog(false);
+    setUserToUnfollow(null);
   };
 
   const handleFollow = async (followingUid) => {
@@ -97,6 +125,62 @@ const Followings = ({ onClose, uid }) => {
     }
   };
 
+  // Confirmation Dialog Component
+  const ConfirmationDialog = () => {
+    const userDetails = followingDetails[userToUnfollow];
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-70"
+        onClick={handleCancelUnfollow}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 500 }}
+          className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+              <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Unfollow {userDetails?.displayName || 'this user'}?
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              You will no longer see their posts in your feed. You can follow them again anytime.
+            </p>
+            <div className="flex space-x-3 justify-center">
+              <button
+                onClick={handleCancelUnfollow}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmUnfollow}
+                disabled={actionLoading[userToUnfollow]}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {actionLoading[userToUnfollow] && (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                )}
+                {actionLoading[userToUnfollow] ? 'Unfollowing...' : 'Unfollow'}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    );
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -104,7 +188,7 @@ const Followings = ({ onClose, uid }) => {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-60"
-        onClick={onClose}
+        onClick={handleClose}
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -119,7 +203,7 @@ const Followings = ({ onClose, uid }) => {
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Following</h2>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-2"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +256,8 @@ const Followings = ({ onClose, uid }) => {
                             <img
                               src={details.photoURL}
                               alt={details.displayName || 'User'}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover hover:cursor-pointer"
+                              onClick={() => handleUserClick(followingUid)}
                               onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -180,33 +265,28 @@ const Followings = ({ onClose, uid }) => {
                             />
                           ) : null}
                           <div 
-                            className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 text-sm font-medium"
+                            className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-600 text-sm font-medium hover:cursor-pointer"
                             style={{ display: details?.photoURL ? 'none' : 'flex' }}
+                            onClick={() => handleUserClick(followingUid)}
                           >
                             {details?.displayName?.charAt(0)?.toUpperCase() || '?'}
                           </div>
                         </div>
                         <div>
-                          <h3 className="font-medium text-gray-900">
+                          <h3 className="font-medium text-gray-900 hover:cursor-pointer hover:text-blue-400" onClick={() => handleUserClick(followingUid)}>
                             {details?.displayName || 'Loading...'}
                           </h3>
-                          <p className="text-sm text-gray-500">
-                            @{followingUid.substring(0, 8)}...
-                          </p>
                         </div>
                       </div>
 
                       <motion.button
-                        onClick={() => handleUnfollow(followingUid)}
+                        onClick={() => handleUnfollowClick(followingUid)}
                         disabled={isActionLoading}
-                        className="px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-4 py-2 text-sm font-medium text-red-600 border border-red-600 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         whileHover={{ scale: isActionLoading ? 1 : 1.02 }}
                         whileTap={{ scale: isActionLoading ? 1 : 0.98 }}
                       >
-                        {isActionLoading && (
-                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                        )}
-                        {isActionLoading ? 'Unfollowing...' : 'Unfollow'}
+                        Unfollow
                       </motion.button>
                     </motion.div>
                   );
@@ -225,6 +305,11 @@ const Followings = ({ onClose, uid }) => {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Confirmation Dialog */}
+      <AnimatePresence>
+        {showConfirmDialog && <ConfirmationDialog />}
+      </AnimatePresence>
     </AnimatePresence>
   );
 };

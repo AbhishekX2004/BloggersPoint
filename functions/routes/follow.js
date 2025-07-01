@@ -40,7 +40,7 @@ router.post("/follow", async (req, res) => {
     const personalizeDoc = await personalizeRef.get();
 
     if (personalizeDoc.exists) {
-      const followingList = personalizeDoc.data().following || [];
+      const followingList = personalizeDoc.data()?.following || [];
       if (followingList.includes(followUid)) {
         return res.status(400).json({error: "Already following this user."});
       }
@@ -48,7 +48,7 @@ router.post("/follow", async (req, res) => {
 
     // Add the follow relationship using set with merge to create document if it doesn't exist
     await personalizeRef.set({
-      following: addToArray(personalizeDoc.data().following, followUid),
+      following: addToArray(personalizeDoc.data()?.following, followUid),
     }, {merge: true});
 
     // Update the followed user's followers count using merge to avoid overwriting

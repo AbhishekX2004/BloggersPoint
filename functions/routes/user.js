@@ -42,7 +42,7 @@ router.get("/", async (req, res) => {
       return res.status(404).json({error: "User not found."});
     }
     const userData = userDoc.data();
-    const blogRef = db.collection("users").doc(uid).collection("blogs");
+    const blogRef = db.collection("users").doc(uid).collection("myBlogs");
     const blogsSnapshot = await blogRef.get();
     const blogsWritten = blogsSnapshot.size;
     const followingDoc = await db.collection("users").doc(uid).collection("personalize").doc("follows").get();

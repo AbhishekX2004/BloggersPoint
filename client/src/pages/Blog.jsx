@@ -391,7 +391,7 @@ const BlogPage = () => {
     }
   }, [authorData]);
 
-  if (loading) {
+  if (loading || !blogData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -409,7 +409,7 @@ const BlogPage = () => {
     );
   }
 
-  if (error || !blogData) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -508,7 +508,13 @@ const BlogPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center">
             <button
-              onClick={() => navigate('/explore')}
+              onClick={() => {
+                if (window.history.length > 2) {
+                  navigate(-1);
+                } else {
+                  navigate('/explore');
+                }
+              }}
               className="mr-4 p-2 text-gray-600 hover:text-blue-600 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
