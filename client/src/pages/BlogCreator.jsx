@@ -24,7 +24,11 @@ const BlogCreator = () => {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadingTitle, setUploadingTitle] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  
+  const [availableTags, setAvailableTags] = useState([]);
+  const [filteredTags, setFilteredTags] = useState([]);
+  const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
+  const [predictingTags, setPredictingTags] = useState(false);
+
   // AI Image Modal states
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [aiModalType, setAiModalType] = useState('media'); // 'title' or 'media'
@@ -47,6 +51,26 @@ const BlogCreator = () => {
     // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [navigate]);
+
+  // Get available tags
+  useEffect(() => {
+    const fetchAvailableTags = async () => {
+      try {
+        const response = await axios.post(`${import.meta.env.VITE_GET_TAGS}`, {
+          data: {},
+        });
+        const result = response.data.result;
+        if (result.success) {
+          setAvailableTags(result.tags);
+          setFilteredTags(result.tags);
+        }
+      } catch (error) {
+        console.error('Error fetching available tags:', error);
+      }
+    };
+
+    fetchAvailableTags();
+  }, []);
 
   // Animation variants
   const fadeInUp = {
@@ -79,15 +103,78 @@ const BlogCreator = () => {
     }
   };
 
-  const handleAddTag = () => {
-    if (currentTag.trim() && !tags.includes(currentTag.trim())) {
-      setTags([...tags, currentTag.trim()]);
-      setCurrentTag('');
+  const handleRemoveTag = (tagToRemove) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handlePredictTags = async () => {
+    if (!title.trim() || !content.trim()) {
+      alert('Please enter both title and content before predicting tags');
+      return;
+    }
+
+    if (title.length < 5) {
+      alert('Title must be at least 5 characters long');
+      return;
+    }
+
+    if (content.length < 20) {
+      alert('Content must be at least 20 characters long');
+      return;
+    }
+
+    setPredictingTags(true);
+
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_PREDICT_TAGS}`, {
+        data: {
+          title: title.trim(),
+          content: content.trim(),
+          options: {
+            includeScores: false,
+            maxTags: 8
+          }
+        }
+      });
+      const result = response.data.result;
+
+      if (result.success && result.predictedTags) {
+        // Add predicted tags to existing tags (avoid duplicates)
+        const newTags = result.predictedTags.filter(tag => !tags.includes(tag));
+        setTags(prev => [...prev, ...newTags]);
+      } else {
+        alert('Failed to predict tags. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error predicting tags:', error);
+      alert('Failed to predict tags. Please try again.');
+    } finally {
+      setPredictingTags(false);
     }
   };
 
-  const handleRemoveTag = (tagToRemove) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+  // Add this function to handle tag search
+  const handleTagSearch = (searchTerm) => {
+    setCurrentTag(searchTerm);
+    if (searchTerm.trim()) {
+      const filtered = availableTags.filter(tag =>
+        tag.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredTags(filtered);
+    } else {
+      setFilteredTags(availableTags);
+    }
+    setIsTagDropdownOpen(true);
+  };
+
+  // Add this function to select a tag from dropdown
+  const handleSelectTag = (tag) => {
+    if (!tags.includes(tag)) {
+      setTags([...tags, tag]);
+    }
+    setCurrentTag('');
+    setIsTagDropdownOpen(false);
+    setFilteredTags(availableTags);
   };
 
   const handleFileUpload = async (event, isTitle = false) => {
@@ -243,7 +330,7 @@ const BlogCreator = () => {
 
       alert('Blog published successfully!');
       console.log('Published blog:', response.data);
-      
+
       // Reset form after successful publish
       setTitle('');
       setContent('');
@@ -439,6 +526,123 @@ const BlogCreator = () => {
 
               {/* Tags */}
               <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Tags</label>
+                  <button
+                    onClick={handlePredictTags}
+                    disabled={predictingTags || !title.trim() || !content.trim()}
+                    className={`${predictingTags || !title.trim() || !content.trim()
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105'
+                      } text-white px-3 py-1 rounded-lg text-sm font-medium transition-all shadow-sm`}
+                  >
+                    {predictingTags ? (
+                      <>
+                        <span className="inline-block animate-spin mr-1">⚡</span>
+                        Predicting...
+                      </>
+                    ) : (
+                      <>
+                        🤖 AI Tag Predictor
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <div className="flex gap-2 mb-3">
+                    <div className="flex-1 relative">
+                      <input
+                        type="text"
+                        value={currentTag}
+                        onChange={(e) => handleTagSearch(e.target.value)}
+                        onFocus={() => setIsTagDropdownOpen(true)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (currentTag.trim() && !tags.includes(currentTag.trim())) {
+                              setTags([...tags, currentTag.trim()]);
+                              setCurrentTag('');
+                              setIsTagDropdownOpen(false);
+                              setFilteredTags(availableTags);
+                            }
+                          }
+                        }}
+                        placeholder="Search or add a tag..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+
+                      {/* Dropdown */}
+                      {isTagDropdownOpen && filteredTags.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {filteredTags.slice(0, 10).map((tag, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleSelectTag(tag)}
+                              className={`w-full px-4 py-2 text-left hover:bg-blue-50 transition-colors ${tags.includes(tag) ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'text-gray-700'
+                                }`}
+                              disabled={tags.includes(tag)}
+                            >
+                              <span className="flex items-center justify-between">
+                                {tag}
+                                {tags.includes(tag) && <span className="text-xs">✓ Added</span>}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (currentTag.trim() && !tags.includes(currentTag.trim())) {
+                          setTags([...tags, currentTag.trim()]);
+                          setCurrentTag('');
+                          setIsTagDropdownOpen(false);
+                          setFilteredTags(availableTags);
+                        }
+                      }}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  {/* Click outside to close dropdown */}
+                  {isTagDropdownOpen && (
+                    <div
+                      className="fixed inset-0 z-5"
+                      onClick={() => setIsTagDropdownOpen(false)}
+                    ></div>
+                  )}
+                </div>
+
+                {/* Display selected tags */}
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2"
+                    >
+                      {tag}
+                      <button
+                        onClick={() => handleRemoveTag(tag)}
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                {tags.length === 0 && (
+                  <p className="text-gray-400 text-sm mt-2">
+                    Add tags to help readers find your blog. You can search from existing tags or create new ones.
+                  </p>
+                )}
+              </div>
+
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
                 <div className="flex gap-2 mb-3">
                   <input
@@ -472,7 +676,7 @@ const BlogCreator = () => {
                     </span>
                   ))}
                 </div>
-              </div>
+              </div> */}
 
               {/* Content */}
               <div>
@@ -548,8 +752,8 @@ const BlogCreator = () => {
                   onClick={handlePublish}
                   disabled={publishing || uploadingTitle || uploadingMedia}
                   className={`${publishing || uploadingTitle || uploadingMedia
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105'
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105'
                     } text-white px-8 py-3 rounded-lg font-semibold shadow-lg transition-all`}
                 >
                   {publishing ? 'Publishing...' : 'Publish Blog'}

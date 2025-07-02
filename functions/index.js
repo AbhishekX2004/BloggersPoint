@@ -29,3 +29,8 @@ app.use("/gen", imageGenRoute);
 app.use("/comments", commentsRoutes);
 
 exports.api = onRequest(app);
+
+// Import and export callable Cloud Functions
+const tagPredictor = require("./cloudFunctions/tagPredictor");
+exports.predictBlogTags = tagPredictor.predictBlogTags;
+exports.getAvailableTags = tagPredictor.getAvailableTags;
