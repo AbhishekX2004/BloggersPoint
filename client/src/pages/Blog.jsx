@@ -551,9 +551,9 @@ const BlogPage = () => {
                   >
                     <img
                       src={blogData.titleURL}
-                      alt={blogData.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
+                      alt={blogData.title}                      
+                      className="w-full h-full object-fill"
+                      loading="eager"
                     />
                   </div>
                   <p className="text-center text-sm text-gray-500 mt-2">Click to enlarge</p>
@@ -617,7 +617,7 @@ const BlogPage = () => {
                       <img
                         src={url}
                         alt={`Blog media ${index + 1}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-fill"
                         loading="lazy"
                       />
                     </motion.div>

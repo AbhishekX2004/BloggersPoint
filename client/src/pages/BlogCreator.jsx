@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +9,7 @@ import { storage, auth } from '../firebaseConfig';
 import ScrollToTop from '../components/ScrollToTop';
 import FloatingParticals from '../components/FloatingParticals';
 import ImgGen from './ImgGen';
+import AIContentEnhancer from './AIContentEnhancer';
 
 const BlogCreator = () => {
   const [user, setUser] = useState(null);
@@ -28,6 +30,8 @@ const BlogCreator = () => {
   const [filteredTags, setFilteredTags] = useState([]);
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
   const [predictingTags, setPredictingTags] = useState(false);
+  const [isAIEnhancementModalOpen, setIsAIEnhancementModalOpen] = useState(false);
+  const [enhancingContent, setEnhancingContent] = useState(false);
 
   // AI Image Modal states
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
@@ -421,9 +425,13 @@ const BlogCreator = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
+
+      {/* Floating Particle Animation */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <FloatingParticals particals={70} />
       </div>
+
+      {/* Main Content */}
       <motion.div
         className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 z-10 relative"
         initial="hidden"
@@ -642,45 +650,32 @@ const BlogCreator = () => {
                 )}
               </div>
 
-              {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={currentTag}
-                    onChange={(e) => setCurrentTag(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                    placeholder="Add a tag..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <button
-                    onClick={handleAddTag}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2"
-                    >
-                      {tag}
-                      <button
-                        onClick={() => handleRemoveTag(tag)}
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div> */}
-
               {/* Content */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                  <button
+                      onClick={() => setIsAIEnhancementModalOpen(true)}
+                      disabled={!content.trim() || enhancingContent}
+                      className={`${
+                        !content.trim() || enhancingContent
+                          ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105'
+                      } text-white px-3 py-1 rounded-lg text-sm font-medium transition-all shadow-sm`}
+                    >
+                      {enhancingContent ? (
+                        <>
+                          <span className="inline-block animate-spin mr-1">⚡</span>
+                          Enhancing...
+                        </>
+                      ) : (
+                        <>
+                          <span className="mr-1 inline-block">🚀</span>
+                          AI Content Enhancer
+                        </>
+                      )}
+                    </button>
+                  </div>
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
@@ -688,7 +683,7 @@ const BlogCreator = () => {
                   rows={15}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg leading-relaxed resize-none"
                 />
-              </div>
+              </div>              
 
               {/* Media Files */}
               <div>
@@ -776,6 +771,20 @@ const BlogCreator = () => {
           user={user}
         />
       </motion.div>
+
+      <AIContentEnhancer
+        isOpen={isAIEnhancementModalOpen}
+        onClose={() => setIsAIEnhancementModalOpen(false)}
+        content={content}
+        onContentUpdated={(newContent) => {
+          setContent(newContent);
+          setIsAIEnhancementModalOpen(false);
+        }}
+        onEnhancingStateChange={setEnhancingContent}
+        user={user}
+      />
+
+      {/* Scroll to Top */}
       <ScrollToTop />
     </div>
   );

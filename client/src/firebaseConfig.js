@@ -2,6 +2,7 @@ import { getApps, initializeApp } from "firebase/app";
 import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getAI, getGenerativeModel, GoogleAIBackend } from "firebase/ai";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -19,6 +20,12 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const ai = getAI(app, {
+  backend: new GoogleAIBackend()
+});
+const model = getGenerativeModel(ai, {
+  model: "gemini-2.5-flash"
+});
 
 // Set the persistence to local to keep the user logged in across sessions
 setPersistence(auth, browserLocalPersistence)
@@ -29,4 +36,4 @@ setPersistence(auth, browserLocalPersistence)
     console.error("Error setting persistence:", error);
   });
 
-export { auth, db, storage };
+export { auth, db, storage, model };
