@@ -15,30 +15,32 @@ import IntroPage from './pages/Auth/IntroPage'
 import BlogCreator from './pages/BlogCreator'
 import MyBlogs from './pages/MyBlogs'
 import PublicProfile from './pages/PublicProfile'
+import Notification from './components/Notification'
 
 function App() {
   return (
-	<div className="min-h-screen flex flex-col" id='container'>
-		<BrowserRouter>
-			<Navbar />
-			<Routes>
-				<Route path="/" element={<LandingPage />} />
-				<Route path="/tc" element={<TermsAndConditions />} />
-				<Route path="/privacy" element={<PrivacyPolicy />} />
-				<Route path="/login" element={<Login />} />
-				<Route path="/register" element={<Register />} />
-				<Route path="/explore" element={<Explore />} />
-				<Route path="/blogs/:blogId" element={<BlogPage />} />
-				<Route path="/getting-started" element={<IntroPage />} />
-				<Route path="/write" element={<BlogCreator />} />
-				<Route path="/my-blogs" element={<MyBlogs />} />
-				<Route path="/public/user/:uid" element={<PublicProfile />} />
-				<Route path="/profile" element={<Profile />} />
-			</Routes>
-			<Footer />
-		</BrowserRouter>
-	</div>
-	
+	<Notification>
+		<div className="min-h-screen flex flex-col" id='container'>
+			<BrowserRouter>
+				<Navbar />
+				<Routes>
+					<Route path="/" element={<LandingPage />} />
+					<Route path="/tc" element={<TermsAndConditions />} />
+					<Route path="/privacy" element={<PrivacyPolicy />} />
+					<Route path="/login" element={<Login />} />
+					<Route path="/register" element={<Register />} />
+					<Route path="/explore" element={<Explore />} />
+					<Route path="/blogs/:blogId" element={<BlogPage />} />
+					<Route path="/getting-started" element={<IntroPage />} />
+					<Route path="/write" element={<BlogCreator />} />
+					<Route path="/my-blogs" element={<MyBlogs />} />
+					<Route path="/public/user/:uid" element={<PublicProfile />} />
+					<Route path="/profile" element={<Profile />} />
+				</Routes>
+				<Footer />
+			</BrowserRouter>
+		</div>
+	</Notification>
   )
 }
 

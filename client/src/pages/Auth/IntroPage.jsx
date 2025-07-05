@@ -1,9 +1,11 @@
+/* eslint-disable no-unused-vars */
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebaseConfig';
 import axios from 'axios';
+import { useNotification } from '../../components/Notification';
 
 const API = import.meta.env.VITE_API;
 
@@ -15,13 +17,14 @@ const IntroPage = () => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
+  const { error } = useNotification();
 
-  // Global array of trendy topics (will be replaced by backend AI)
+  // Global array of trendy topics
   const trendyTopics = [
     { id: 1, name: 'Artificial Intelligence', emoji: '🤖', color: 'from-blue-500 to-cyan-500' },
     { id: 2, name: 'Web Development', emoji: '🌐', color: 'from-green-500 to-teal-500' },
-    { id: 3, name: 'Education', emoji: '📚', color: 'from-emerald-500 to-green-600' },
-    { id: 4, name: 'Exercise', emoji: '🏋️', color: 'from-purple-500 to-pink-500' },
+    { id: 3, name: 'Education And Learning', emoji: '📚', color: 'from-emerald-500 to-green-600' },
+    { id: 4, name: 'Health and Fitness', emoji: '🏋️', color: 'from-purple-500 to-pink-500' },
     { id: 5, name: 'Cryptocurrency', emoji: '₿', color: 'from-orange-500 to-red-500' },
     { id: 6, name: 'Quantum Computing', emoji: '⚛️', color: 'from-indigo-500 to-purple-600' }
   ];
@@ -133,12 +136,11 @@ const IntroPage = () => {
       }
       console.log('Setup successful:', response.data);
       navigate('/profile');
-    } catch (error) {
-      console.error('Setup failed:', error);
-
-      // TODO : Show error notification to user
-
+    } catch (err) {
+      console.error('Intro Page :: Setup failed ::\n', err);
+			error("Setup failed.");
       navigate('/profile');
+      window.scrollTo(0,0);
     } finally {
       setIsLoading(false);
     }

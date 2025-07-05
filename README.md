@@ -1,127 +1,44 @@
-# Blog Website - Powered by AI  
-> By - Abhishek Verma
+# BloggersPoint
+AI powered blogging platform
 
-## Description  
-An online blogging platform enhanced with AI capabilities. Users can generate AI-powered images and receive assistance in writing or refining their blog content.
+## Overview 
+BloggersPoint is an innovative online blogging platform that leverages various AI technologies to enhance the content creation experience. The platform combines intelligent personalization, automated content assistance, and robust safety measures to create a seamless blogging environment for creators of all levels. 
 
----
+## Key Features
+### Smart Personalization
+- **User Profiling**: Intelligent analysis of user preferences and behavior patterns
+- **Collaborative Filtering**: Personalized content recommendations based on similar user interests
+- **Dynamic Content Discovery**: Tailored blog suggestions to match individual reading preferences
 
-## Tech Stack
+### AI-Powered Content Creation
+- **Text-to-Image Generation**: Create stunning visuals from text descriptions using Black Forest FLUX.1-dev
+- **Content Enhancement**: AI-assisted grammar correction, tone optimization, and engagement improvement
+- **Writing Assistant**: Real-time suggestions to elevate your content quality
 
-### AI Tools
-- **GenAI via Amazon Bedrock** — for image generation and content assistance (limited to 2 images per day).
+### Automated Content Management
+- **Smart Tag Generation**: Keyword-based classification for efficient content categorization
+- **Auto-Organization**: Intelligent content structuring and categorization
+- **SEO Optimization**: Automated tag suggestions for better discoverability
 
+### Content Safety & Compliance
+- **Profanity Detection**: Real-time filtering using KolasAI technology
+- **Sentiment Analysis**: Monitor and maintain positive community interactions
+- **Content Moderation**: Automated safety checks to ensure platform guidelines compliance
+
+## Technology Stack
 ### Frontend
-- ReactJS  
-- Vite  
-- Axios  
-- Framer Motion  
+- React.js
 - Tailwind CSS
-
+- Framer Motion
 ### Backend
-- NodeJS  
-- ExpressJS  
-- AWS Services
-
-### Database
-- DynamoDB
-
-### Version Control
-- Git
-
----
-
-## Authentication
-- Google OAuth login via **Amazon Cognito**.
-- User sessions persist, and login activity updates a `lastlogin` field daily, only if the current date differs from the stored one.
-
----
-
-## User Profile Schema
-
-Each user document in the `Users` collection will contain:
-- `uid`  
-- `name`  
-- `profilePictureURL` (stored in S3, linked in DB)  
-- `email`  
-- `phoneNumber`  
-- `createdAt`  
-- `lastlogin` (updates once per day)  
-- Subcollection: `blogs`  
-  - Each blog's document ID is its `blogid`.
-
----
-
-## Blog Schema
-
-Main `BlogPosts` collection:
-- `blogid`  
-- `title`  
-- `authorName`  
-- `uid`  
-- `blog_tags` (array)
-- `timestamp`  
-- `content`  
-- `picturesURL` (array)
-
-Subcollection inside each blog:
-- `comments`  
-  - Each comment's document ID is its `cid`.
-
----
-
-## Comments Schema
-
-`Comments` collection (global):
-- `cid`  
-- `name`  
-- `comment`  
-- `timestamp`
-
----
-
-## AI Capabilities
-
-Using Amazon Bedrock (GenAI):
-- Generate up to 2 images/day per user via prompts.  
-- Enhance or auto-write blog content based on user-provided context.
-
----
-
-## Features
-- Seamless login with Google using Cognito  
-- Blog creation, editing, and deletion  
-- Commenting system  
-- AI-assisted image generation and content improvement  
-- Fully responsive and animated frontend with Framer Motion & Tailwind  
-- Fast Vite-based development with modular components  
-- Data stored in DynamoDB with optimized schema design
-
----
-
-## File Structure
-```
-BlowWebsite/
-|-- client/
-|	|-- public/
-|	|-- src/
-|	|	|-- assets/
-|	|	|-- pages/
-|	|	|-- components/
-|	|	|-- services/
-|	|	|-- App.css
-|	|	|-- App.jsx
-|	|	|-- index.css
-|	|	|-- main.jsx
-|	|-- index.html
-|-- server/
-|	|-- routes/
-|	|	|-- ai.js
-|	|	|-- posts.js
-|	|	|-- comments.js
-|	|-- utils/
-|	|	|-- bedrockClient.js
-|	|-- .env
-|	|-- index.js
-
-```
+- Node.js
+- Express.js
+- Firebase - Comprehensive backend services
+  - Firestore
+  - Firebase Auth
+  - Firebase Storage
+  - Firebase Hosting
+### AI & APIs
+- Black Forest FLUX.1-dev - Advanced text-to-image generation
+- Gemini Developer API - AI-powered content enhancement
+- KolasAI - Real-time profanity and sentiment analysis

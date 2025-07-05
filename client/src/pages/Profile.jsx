@@ -10,9 +10,9 @@ import UploadIndicator from '../components/UploadIndicator';
 import ScrollToTop from '../components/ScrollToTop';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../firebaseConfig';
-
 import Interests from './Interests';
 import Followings from './Followings';
+import { useNotification } from '../components/Notification';
 
 const API = import.meta.env.VITE_API;
 
@@ -30,6 +30,7 @@ const Profile = () => {
 	const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 	const [showInterestsModal, setShowInterestsModal] = useState(false);
 	const [showFollowingModal, setShowFollowingModal] = useState(false);
+	const { error } = useNotification();
 
 	useEffect(() => {
 		// Check authentication
@@ -42,10 +43,10 @@ const Profile = () => {
 				setUserData(response.data);
 				setUid(user.uid);
 				setLoading(false);
-			} catch (error) {
-				console.error('Error fetching user data:', error);
+			} catch (err) {
+				console.error('Profile Page :: Error fetching user data ::\n', err);
+				error("Failed fetch user data. Please try again.");
 				setLoading(false);
-				// TODO : Show error message to user.
 			}
 		});
 		return () => unsubscribe();
@@ -57,9 +58,9 @@ const Profile = () => {
 		try {
 			const { data } = await axios.get(`${API}/params/status`);
 			setUserStatuses(data.statuses);
-		} catch (error) {
-			console.error('Error fetching statuses:', error);
-			// TODO: Show error message to user
+		} catch (err) {
+			console.error('Profile Page :: Error fetching statuses ::\n', err);
+			error("Failed fetch user data. Please try again.");
 		}
 	};
 
@@ -76,8 +77,9 @@ const Profile = () => {
 			}));
 			setShowStatusDropdown(false);
 			await axios.post(`${API}/user/status`, { uid: userData.uid, status: newStatus });
-		} catch (error) {
-			console.error('Error updating status:', error);
+		} catch (err) {
+			console.error('Error updating status:', err);
+			error("Failed to update status")
 			setUserData(prev => ({
 				...prev,
 				status: oldStatus,
@@ -104,7 +106,7 @@ const Profile = () => {
 			setIsEditingProfile(false);
 		} catch (error) {
 			console.error('Error updating profile:', error);
-			// Optional: Show error message to user
+			error("Failed to update profile.")
 		}
 	};
 
@@ -135,9 +137,9 @@ const Profile = () => {
 			}));
 
 			setShowPhotoModal(false);
-		} catch (error) {
-			console.error('Error uploading photo:', error);
-			// Optional: Show error message to user
+		} catch (err) {
+			console.error('Profile Page :: Upload failed ::\n', err);
+      		error('Upload failed. Please try again.');
 		} finally {
 			setIsUploadingPhoto(false);
 		}

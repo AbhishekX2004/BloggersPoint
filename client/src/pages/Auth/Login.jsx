@@ -35,8 +35,7 @@ const Login = () => {
       const result = await handleGoogleLogin(navigate);
       
       if (result.success) {
-        // Redirect to dashboard or home page after successful login
-        navigate('/profile'); // or wherever you want to redirect after login
+        navigate('/profile'); 
       }
     } catch (error) {
       setError(error.message);

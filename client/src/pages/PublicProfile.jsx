@@ -6,7 +6,7 @@ import { auth } from '../firebaseConfig';
 import axios from 'axios';
 import FloatingParticals from '../components/FloatingParticals';
 import ScrollToTop from '../components/ScrollToTop';
-
+import { useNotification } from '../components/Notification';
 const API = import.meta.env.VITE_API;
 
 const PublicProfile = () => {
@@ -20,6 +20,7 @@ const PublicProfile = () => {
 	const [followers, setFollowers] = useState(0);
 	const [userInterests, setUserInterests] = useState([]);
 	const [allTags, setAllTags] = useState([]);
+	const { info } = useNotification();
 
 	useEffect(() => {
 		// Check authentication
@@ -122,10 +123,8 @@ const PublicProfile = () => {
 					url: window.location.href
 				});
 			} else {
-				// Fallback: copy to clipboard
 				await navigator.clipboard.writeText(window.location.href);
-				// You could add a toast notification here
-				alert('Profile link copied to clipboard!');
+				info('Link copied to clipboard!');
 			}
 		} catch (error) {
 			console.error('Error sharing:', error);

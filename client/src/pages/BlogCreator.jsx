@@ -10,6 +10,7 @@ import ScrollToTop from '../components/ScrollToTop';
 import FloatingParticals from '../components/FloatingParticals';
 import ImgGen from './ImgGen';
 import AIContentEnhancer from './AIContentEnhancer';
+import { useNotification } from '../components/Notification';
 
 const BlogCreator = () => {
   const [user, setUser] = useState(null);
@@ -32,10 +33,23 @@ const BlogCreator = () => {
   const [predictingTags, setPredictingTags] = useState(false);
   const [isAIEnhancementModalOpen, setIsAIEnhancementModalOpen] = useState(false);
   const [enhancingContent, setEnhancingContent] = useState(false);
-
-  // AI Image Modal states
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [aiModalType, setAiModalType] = useState('media'); // 'title' or 'media'
+
+  const { success, error, warning } = useNotification();
+
+  const handleSuccess = (message) => {
+    success(message);
+  };
+
+  const handleWarning = (message) => {
+    warning(message);
+  }
+
+  const handleError = (message) => {
+    error(message);
+  };
+
 
   const navigate = useNavigate();
   const API = import.meta.env.VITE_API;
@@ -69,7 +83,7 @@ const BlogCreator = () => {
           setFilteredTags(result.tags);
         }
       } catch (error) {
-        console.error('Error fetching available tags:', error);
+        console.error("Blog Creator Page :: Error fetching available tags ::\n", error);
       }
     };
 
@@ -102,8 +116,8 @@ const BlogCreator = () => {
       const downloadURL = await getDownloadURL(snapshot.ref);
       return downloadURL;
     } catch (error) {
-      console.error('Error uploading file:', error);
-      throw error;
+      console.error('Blog Creator Page :: Upload failed ::\n', error);
+      handleError('Upload failed. Please try again.');
     }
   };
 
@@ -113,17 +127,17 @@ const BlogCreator = () => {
 
   const handlePredictTags = async () => {
     if (!title.trim() || !content.trim()) {
-      alert('Please enter both title and content before predicting tags');
+      warning('Please enter both title and content before predicting tags');
       return;
     }
 
     if (title.length < 5) {
-      alert('Title must be at least 5 characters long');
+      warning('Title must be at least 5 characters long');
       return;
     }
 
     if (content.length < 20) {
-      alert('Content must be at least 20 characters long');
+      warning('Content must be at least 20 characters long');
       return;
     }
 
@@ -147,11 +161,11 @@ const BlogCreator = () => {
         const newTags = result.predictedTags.filter(tag => !tags.includes(tag));
         setTags(prev => [...prev, ...newTags]);
       } else {
-        alert('Failed to predict tags. Please try again.');
+        error('Failed to predict tags. Please try again.');
       }
-    } catch (error) {
-      console.error('Error predicting tags:', error);
-      alert('Failed to predict tags. Please try again.');
+    } catch (err) {
+      console.error('Blog Creator Page :: Error predicting tags ::\n', err);
+			error("Failed to predict tags. Please try again.");
     } finally {
       setPredictingTags(false);
     }
@@ -217,9 +231,9 @@ const BlogCreator = () => {
           setUploadingMedia(false);
         }
       }
-    } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+    } catch (err) {
+      console.error('Blog Creator Page :: Upload failed ::\n', err);
+      error('Upload failed. Please try again.');
       if (isTitle) {
         setUploadingTitle(false);
         setTitleImage(null);
@@ -268,8 +282,8 @@ const BlogCreator = () => {
         }
       }
     } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Upload failed. Please try again.');
+      console.error('Blog Creator Page :: Upload failed ::\n', error);
+      handleError('Upload failed. Please try again.');
       if (type === 'title') {
         setUploadingTitle(false);
         setTitleImage(null);
@@ -298,23 +312,24 @@ const BlogCreator = () => {
 
   const handlePublish = async () => {
     if (!user) {
-      alert('You must be logged in to publish a blog');
+      handleError("You must be logged in to publish a blog");
       navigate('/login');
+      window.scrollTo(0,0);
       return;
     }
 
     if (!title.trim()) {
-      alert('Please enter a blog title');
+      handleWarning('Please enter a blog title');
       return;
     }
 
     if (!content.trim()) {
-      alert('Please enter blog content');
+      handleWarning('Please enter blog content');
       return;
     }
 
     if (tags.length === 0) {
-      alert('Please add at least one tag');
+      handleWarning('Please add at least one tag');
       return;
     }
 
@@ -332,8 +347,7 @@ const BlogCreator = () => {
 
       const response = await axios.post(`${API}/blog/create`, blogData);
 
-      alert('Blog published successfully!');
-      console.log('Published blog:', response.data);
+      handleSuccess('Blog published successfully!');
 
       // Reset form after successful publish
       setTitle('');
@@ -343,12 +357,11 @@ const BlogCreator = () => {
       setTitleImage(null);
       setTitleImageUrl('');
       setMediaUrls([]);
-
       navigate(`/blogs/${response.data.blogId}`);
-
+      window.scrollTo(0,0);
     } catch (error) {
       console.error('Error publishing blog:', error);
-      alert('Failed to publish blog. Please try again.');
+      handleError('Failed to publish blog. Please try again.');
     } finally {
       setPublishing(false);
     }
@@ -403,6 +416,20 @@ const BlogCreator = () => {
           </div>
         </div>
       )}
+
+      {/* Publish Button */}
+      <div className="flex justify-center pt-6">
+        <button
+          onClick={handlePublish}
+          disabled={publishing || uploadingTitle || uploadingMedia}
+          className={`${publishing || uploadingTitle || uploadingMedia
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105'
+            } text-white px-8 py-3 rounded-lg font-semibold shadow-lg transition-all`}
+        >
+          {publishing ? 'Publishing...' : 'Publish Blog'}
+        </button>
+      </div>
     </motion.div>
   );
 

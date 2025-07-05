@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import FloatingParticals from '../components/FloatingParticals';
 import ScrollToTop from '../components/ScrollToTop';
 import axios from "axios";
+import { useNotification } from '../components/Notification';
 
 const API = import.meta.env.VITE_API;
 
@@ -28,6 +29,7 @@ const BlogPage = () => {
   const [followers, setFollowers] = useState(0);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [enlargedImage, setEnlargedImage] = useState(null);
+  const { success, error: errorNotfication, warning, info, addNotification } = useNotification();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -261,12 +263,14 @@ const BlogPage = () => {
         content: newComment
       });
 
+      success("Commented Successfully!");
+
       setNewComment('');
       await fetchComments(null, true); // Refresh
 
-    } catch (error) {
-      console.error('Error posting comment:', error);
-      alert('Failed to post comment. Please try again.');
+    } catch (err) {
+      console.error('Blogs Page :: Error commenting ::\n', err);
+      errorNotfication("Failed to post comment. Please try again.");
     } finally {
       setAddingComment(false);
     }
@@ -284,7 +288,7 @@ const BlogPage = () => {
     } else {
       // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
+      info('Link copied to clipboard!');
     }
   };
 

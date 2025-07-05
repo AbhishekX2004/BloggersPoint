@@ -43,9 +43,8 @@ const Register = () => {
 
       if (result.success) {
         setSuccess('Account created successfully! Redirecting...');
-        // Redirect to dashboard or home page after successful registration
         setTimeout(() => {
-          navigate('/getting-started'); // or wherever you want to redirect after registration
+          navigate('/getting-started');
         }, 2000);
       }
     } catch (error) {

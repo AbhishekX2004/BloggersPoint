@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ScrollToTop from '../components/ScrollToTop';
 import FloatingParticals from '../components/FloatingParticals';
+import { useNotification } from '../components/Notification';
 
 const API = import.meta.env.VITE_API;
 
@@ -27,6 +28,7 @@ const MyBlogs = () => {
 
     const navigate = useNavigate();
     const observerRef = useRef();
+    const { error } = useNotification();
 
     useEffect(() => {
         // Check authentication
@@ -37,10 +39,10 @@ const MyBlogs = () => {
             try {
                 setUser(user);
                 setLoading(false);
-            } catch (error) {
-                console.error('Error fetching user data:', error);
+            } catch (err) {
+                console.error('MyBlogs Page :: Error fetching user data ::\n', err);
+                error("Failed fetching user data. Please try again.");
                 setLoading(false);
-                // TODO : Show error message to user.
             }
         });
         return () => unsubscribe();
@@ -168,8 +170,9 @@ const MyBlogs = () => {
             } else {
                 throw new Error('Failed to delete blog');
             }
-        } catch (error) {
-            console.error('Error deleting blog:', error);
+        } catch (err) {
+            console.error('MyBlogs Page :: Error deleting blog ::\n', err);
+            error('Upload failed. Please try again.');
             // You might want to show an error toast here
         } finally {
             setDeleting(false);

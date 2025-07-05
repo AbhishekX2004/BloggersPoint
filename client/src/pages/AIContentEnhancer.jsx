@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { model } from '../firebaseConfig';
+import { useNotification } from '../components/Notification';
 
 const AIContentEnhancer = ({ 
   isOpen, 
@@ -15,6 +16,7 @@ const AIContentEnhancer = ({
   const [enhancedContent, setEnhancedContent] = useState('');
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const { error } = useNotification();
 
   const enhancementOptions = [
     { id: 'grammar', label: 'Grammar & Spelling', icon: '✍️', description: 'Fix grammar, spelling, and punctuation errors' },
@@ -88,9 +90,9 @@ Enhanced Content:`;
     
     setEnhancedContent(cleanedContent);
     setShowPreview(true);
-    } catch (error) {
-      console.error('Error enhancing content:', error);
-      alert('Failed to enhance content. Please try again.');
+    } catch (err) {
+      console.error('AI Enhancer :: Error enhancing content ::\n', err);
+			error("Error enhancing content. Please try again.");
     } finally {
       setIsEnhancing(false);
     }
