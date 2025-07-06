@@ -270,7 +270,11 @@ const BlogPage = () => {
 
     } catch (err) {
       console.error('Blogs Page :: Error commenting ::\n', err);
-      errorNotfication("Failed to post comment. Please try again.");
+      if(!err.response.data.field){
+        errorNotfication('Failed to post comment. Please try again.');
+      } else {
+        errorNotfication(`${err.response.data.error}`);
+      }
     } finally {
       setAddingComment(false);
     }

@@ -361,7 +361,11 @@ const BlogCreator = () => {
       window.scrollTo(0,0);
     } catch (error) {
       console.error('Error publishing blog:', error);
-      handleError('Failed to publish blog. Please try again.');
+      if(!error.response.data.field){
+        handleError('Failed to publish blog. Please try again.');
+      } else {
+        handleError(`Please review the blog contents, we found inappropriate phrases in: Blog ${error.response.data.field}`);
+      }
     } finally {
       setPublishing(false);
     }
