@@ -9,11 +9,14 @@ import ScrollToTop from '../components/ScrollToTop';
 import FloatingParticals from '../components/FloatingParticals';
 import BlogCard from '../components/BlogCard';
 import { useNotification } from '../components/Notification';
+import { useSearchParams } from 'react-router-dom';
 
 // API
 const API = import.meta.env.VITE_API;
 
 const Explore = () => {
+  const [searchParams] = useSearchParams();
+  const author = searchParams.get('author');
   const [user, setUser] = useState(null); // Initialize as null instead of undefined
   const [authLoaded, setAuthLoaded] = useState(false); // Track if auth state is loaded
   const [blogs, setBlogs] = useState([]);
@@ -25,7 +28,7 @@ const Explore = () => {
   const [filters, setFilters] = useState({
     range: '', // 'today', 'this-week', 'this-month', 'past-3months', 'this-year'
     date: '', // specific date in YYYY-MM-DD format
-    author: '', // author display name
+    author: author || "", // author display name
     tags: [], // array of tags
     sortBy: 'latest' // 'latest', 'oldest', 'most-popular', 'most-commented'
   });

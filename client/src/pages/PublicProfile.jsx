@@ -334,7 +334,7 @@ const PublicProfile = () => {
 											boxShadow: "0 20px 40px -12px rgba(251, 146, 60, 0.4)"
 										}}
 										whileTap={{ scale: 0.98 }}
-										onClick={() => {navigate(`/author/${profileUid}/blogs`); window.scrollTo(0,0);}}
+										onClick={() => {navigate(`/explore?author=${userData.displayName}`); window.scrollTo(0,0);}}
 									>
 										{/* Background animation effect */}
 										<div className="absolute inset-0 bg-gradient-to-r from-red-600 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

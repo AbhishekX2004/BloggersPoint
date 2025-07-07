@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import { storage, auth } from '../firebaseConfig';
 import ScrollToTop from '../components/ScrollToTop';
@@ -165,7 +165,7 @@ const BlogCreator = () => {
       }
     } catch (err) {
       console.error('Blog Creator Page :: Error predicting tags ::\n', err);
-			error("Failed to predict tags. Please try again.");
+      error("Failed to predict tags. Please try again.");
     } finally {
       setPredictingTags(false);
     }
@@ -295,14 +295,67 @@ const BlogCreator = () => {
     }
   };
 
-  const handleRemoveMedia = (index) => {
-    setMediaFiles(mediaFiles.filter((_, i) => i !== index));
-    setMediaUrls(mediaUrls.filter((_, i) => i !== index));
+  // Helper function to delete file from Firebase Storage
+  const deleteFromFirebase = async (url) => {
+    try {
+      if (!url) return;
+      const urlParts = url.split("/o/")[1];
+      if (!urlParts) {
+        console.warn('Invalid Firebase Storage URL format - no /o/ found');
+        return;
+      }
+
+      const filePath = decodeURIComponent(urlParts.split("?")[0]);
+
+      if (!filePath) {
+        console.warn('Could not extract file path from URL');
+        return;
+      }
+
+      const fileRef = ref(storage, filePath);
+      try {
+        await deleteObject(fileRef);
+        console.log(`Deleted file: ${filePath}`);
+      } catch (deleteError) {
+        // File might not exist or already deleted
+        if (deleteError.code === 'storage/object-not-found') {
+          console.log(`File not found (already deleted): ${filePath}`);
+        } else {
+          throw deleteError;
+        }
+      }
+    } catch (error) {
+      console.error(`Error deleting file from URL ${url}:`, error);
+      // Don't throw error - we still want to remove from local state even if Firebase deletion fails
+    }
   };
 
-  const handleRemoveTitleImage = () => {
-    setTitleImage(null);
-    setTitleImageUrl('');
+  const handleRemoveMedia = async (index) => {
+    try {
+      const urlToDelete = mediaUrls[index];
+      setMediaFiles(mediaFiles.filter((_, i) => i !== index));
+      setMediaUrls(mediaUrls.filter((_, i) => i !== index));
+      if (urlToDelete) {
+        await deleteFromFirebase(urlToDelete);
+      }
+    } catch (error) {
+      console.error('Error removing media file:', error);
+      handleError('Failed to completely remove media file. Please try again.');
+    }
+  };
+
+  const handleRemoveTitleImage = async () => {
+    try {
+      const urlToDelete = titleImageUrl;
+      setTitleImage(null);
+      setTitleImageUrl('');
+      if (urlToDelete) {
+        await deleteFromFirebase(urlToDelete);
+      }
+    } catch (error) {
+      console.error('Error removing title image:', error);
+      handleError('Failed to completely remove title image. Please try again.');
+    }
   };
 
   const openAIModal = (type) => {
@@ -314,7 +367,7 @@ const BlogCreator = () => {
     if (!user) {
       handleError("You must be logged in to publish a blog");
       navigate('/login');
-      window.scrollTo(0,0);
+      window.scrollTo(0, 0);
       return;
     }
 
@@ -358,10 +411,10 @@ const BlogCreator = () => {
       setTitleImageUrl('');
       setMediaUrls([]);
       navigate(`/blogs/${response.data.blogId}`);
-      window.scrollTo(0,0);
+      window.scrollTo(0, 0);
     } catch (error) {
       console.error('Error publishing blog:', error);
-      if(!error.response.data.field){
+      if (!error.response.data.field) {
         handleError('Failed to publish blog. Please try again.');
       } else {
         handleError(`Please review the blog contents, we found inappropriate phrases in: Blog ${error.response.data.field}`);
@@ -686,27 +739,26 @@ const BlogCreator = () => {
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
                   <button
-                      onClick={() => setIsAIEnhancementModalOpen(true)}
-                      disabled={!content.trim() || enhancingContent}
-                      className={`${
-                        !content.trim() || enhancingContent
-                          ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105'
+                    onClick={() => setIsAIEnhancementModalOpen(true)}
+                    disabled={!content.trim() || enhancingContent}
+                    className={`${!content.trim() || enhancingContent
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 transform hover:scale-105'
                       } text-white px-3 py-1 rounded-lg text-sm font-medium transition-all shadow-sm`}
-                    >
-                      {enhancingContent ? (
-                        <>
-                          <span className="inline-block animate-spin mr-1">⚡</span>
-                          Enhancing...
-                        </>
-                      ) : (
-                        <>
-                          <span className="mr-1 inline-block">🚀</span>
-                          AI Content Enhancer
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  >
+                    {enhancingContent ? (
+                      <>
+                        <span className="inline-block animate-spin mr-1">⚡</span>
+                        Enhancing...
+                      </>
+                    ) : (
+                      <>
+                        <span className="mr-1 inline-block">🚀</span>
+                        AI Content Enhancer
+                      </>
+                    )}
+                  </button>
+                </div>
                 <textarea
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
@@ -714,7 +766,7 @@ const BlogCreator = () => {
                   rows={15}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg leading-relaxed resize-none"
                 />
-              </div>              
+              </div>
 
               {/* Media Files */}
               <div>
