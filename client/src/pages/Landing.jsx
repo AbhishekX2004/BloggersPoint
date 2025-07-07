@@ -190,7 +190,7 @@ const LandingPage = () => {
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 onClick={() => writeABlog()}
               >
-                Write a Blog
+                Start Writing
               </motion.button>
             </motion.div>
           </div>

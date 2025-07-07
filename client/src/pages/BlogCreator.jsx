@@ -171,7 +171,7 @@ const BlogCreator = () => {
     }
   };
 
-  // Add this function to handle tag search
+  // function to handle tag search
   const handleTagSearch = (searchTerm) => {
     setCurrentTag(searchTerm);
     if (searchTerm.trim()) {
@@ -185,7 +185,7 @@ const BlogCreator = () => {
     setIsTagDropdownOpen(true);
   };
 
-  // Add this function to select a tag from dropdown
+  // function to select a tag from dropdown
   const handleSelectTag = (tag) => {
     if (!tags.includes(tag)) {
       setTags([...tags, tag]);

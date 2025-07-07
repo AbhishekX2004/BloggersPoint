@@ -18,19 +18,45 @@ const Interests = ({ onClose, uid }) => {
         setLoading(true);
         setError(null);
 
-        // Fetch all tags and user interests in parallel
-        const [tagsResponse, interestsResponse] = await Promise.all([
-          axios.get(`${API}/params/tags`),
-          axios.get(`${API}/user/interests?uid=${uid}`)
+        // Fetch tags using the new endpoint
+        const fetchAvailableTags = async () => {
+          try {
+            const response = await axios.post(`${import.meta.env.VITE_GET_TAGS}`, {
+              data: {},
+            });
+            const result = response.data.result;
+            if (result.success) {
+              return result.tags;
+            }
+            throw new Error('Failed to fetch tags');
+          } catch (error) {
+            console.error("Interests :: Error fetching available tags ::\n", error);
+            throw error;
+          }
+        };
+
+        // Fetch user interests
+        const fetchUserInterests = async () => {
+          try {
+            const response = await axios.get(`${API}/user/interests?uid=${uid}`);
+            if (response.data.status === 'success') {
+              return response.data.interests;
+            }
+            throw new Error('Failed to fetch user interests');
+          } catch (error) {
+            console.error("Interests :: Error fetching user interests ::\n", error);
+            throw error;
+          }
+        };
+
+        // Fetch both in parallel
+        const [tags, interests] = await Promise.all([
+          fetchAvailableTags(),
+          fetchUserInterests()
         ]);
 
-        if (tagsResponse.data.status === 'success') {
-          setAllTags(tagsResponse.data.tags);
-        }
-
-        if (interestsResponse.data.status === 'success') {
-          setSelectedInterests(interestsResponse.data.interests);
-        }
+        setAllTags(tags);
+        setSelectedInterests(interests);
       } catch (err) {
         setError('Failed to load data. Please try again.');
         console.error('Error fetching data:', err);

@@ -65,31 +65,31 @@ const IntroPage = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Animation variants
+  // Animation variants - optimized for mobile
   const containerVariants = {
-    hidden: { opacity: 0, y: 50 },
+    hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: 0.4,
         ease: "easeOut",
         staggerChildren: 0.1
       }
     },
     exit: {
       opacity: 0,
-      y: -50,
+      y: -20,
       transition: { duration: 0.3 }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 15 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.4, ease: "easeOut" }
+      transition: { duration: 0.3, ease: "easeOut" }
     }
   };
 
@@ -138,7 +138,7 @@ const IntroPage = () => {
       navigate('/profile');
     } catch (err) {
       console.error('Intro Page :: Setup failed ::\n', err);
-			error("Setup failed.");
+      error("Setup failed.");
       navigate('/profile');
       window.scrollTo(0,0);
     } finally {
@@ -155,9 +155,9 @@ const IntroPage = () => {
   // Show loading while checking auth state
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 flex items-center justify-center">
+      <div className="min-h-[60vh] sm:min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 flex items-center justify-center px-4">
         <motion.div
-          className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"
+          className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full"
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         />
@@ -171,29 +171,29 @@ const IntroPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 flex items-center justify-center p-4">
+    <div className="min-h-[80vh] sm:min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 flex items-center justify-center px-3 py-6 sm:px-4 sm:py-6 relative">
       {/* Floating background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
-          className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full opacity-20"
+          className="absolute -top-16 -right-16 sm:-top-40 sm:-right-40 w-32 h-32 sm:w-80 sm:h-80 bg-gradient-to-br from-blue-700 to-purple-700 rounded-full opacity-15 sm:opacity-20"
           animate={{
-            scale: [1, 1.2, 1],
+            scale: [1, 1.1, 1],
             rotate: [0, 180, 360],
           }}
           transition={{
-            duration: 5,
+            duration: 8,
             repeat: Infinity,
             ease: "linear"
           }}
         />
         <motion.div
-          className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pink-400 to-orange-400 rounded-full opacity-20"
+          className="absolute -bottom-16 -left-16 sm:-bottom-40 sm:-left-40 w-32 h-32 sm:w-80 sm:h-80 bg-gradient-to-br from-pink-700 to-orange-700 rounded-full opacity-15 sm:opacity-20"
           animate={{
-            scale: [1.2, 1, 1.2],
+            scale: [1.1, 1, 1.1],
             rotate: [360, 180, 0],
           }}
           transition={{
-            duration: 10,
+            duration: 12,
             repeat: Infinity,
             ease: "linear"
           }}
@@ -201,23 +201,24 @@ const IntroPage = () => {
       </div>
 
       <motion.div
-        className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-2xl p-8 w-full max-w-2xl relative z-10"
+        className="bg-white/90 backdrop-blur-lg rounded-2xl sm:rounded-3xl shadow-xl sm:shadow-2xl p-4 sm:p-6 lg:p-8 w-full max-w-sm sm:max-w-md lg:max-w-2xl relative z-10 my-4 sm:my-0"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
         {/* Progress bar */}
-        <motion.div className="mb-8" variants={itemVariants}>
-          <div className="flex justify-between items-center mb-4">
+        <motion.div className="mb-6 sm:mb-8" variants={itemVariants}>
+          <div className="flex justify-between items-center mb-3 sm:mb-4">
             {steps.map((_, index) => (
               <motion.div
                 key={index}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${index <= currentStep
+                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold ${
+                  index <= currentStep
                     ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                     : 'bg-gray-200 text-gray-500'
-                  }`}
+                }`}
                 animate={{
-                  scale: index === currentStep ? 1.2 : 1,
+                  scale: index === currentStep ? 1.1 : 1,
                 }}
                 transition={{ duration: 0.3 }}
               >
@@ -225,9 +226,9 @@ const IntroPage = () => {
               </motion.div>
             ))}
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
             <motion.div
-              className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full"
+              className="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 sm:h-2 rounded-full"
               initial={{ width: "0%" }}
               animate={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -245,13 +246,13 @@ const IntroPage = () => {
           className="text-center"
         >
           <motion.h1
-            className="text-3xl md:text-4xl font-bold text-gray-800 mb-4"
+            className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 sm:mb-4 leading-tight px-2"
             variants={itemVariants}
           >
             {steps[currentStep].title}
           </motion.h1>
           <motion.p
-            className="text-lg text-gray-600 mb-8"
+            className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 px-2"
             variants={itemVariants}
           >
             {steps[currentStep].subtitle}
@@ -259,12 +260,12 @@ const IntroPage = () => {
 
           {/* Step 0: Display Name */}
           {currentStep === 0 && (
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} className="px-2">
               <motion.input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full max-w-md mx-auto px-6 py-4 text-xl text-center border-2 border-gray-200 rounded-2xl focus:border-blue-500 focus:outline-none transition-colors"
+                className="w-full max-w-sm mx-auto px-4 py-3 sm:px-6 sm:py-4 text-lg sm:text-xl text-center border-2 border-gray-200 rounded-xl sm:rounded-2xl focus:border-blue-500 focus:outline-none transition-colors"
                 placeholder="Enter your name"
                 whileFocus={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
@@ -275,7 +276,7 @@ const IntroPage = () => {
           {/* Step 1: Interests */}
           {currentStep === 1 && (
             <motion.div
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 px-2"
               variants={containerVariants}
             >
               {trendyTopics.map((topic) => {
@@ -284,17 +285,20 @@ const IntroPage = () => {
                   <motion.button
                     key={topic.id}
                     onClick={() => handleInterestToggle(topic)}
-                    className={`p-6 rounded-2xl border-2 transition-all duration-300 ${isSelected
+                    className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 ${
+                      isSelected
                         ? 'border-blue-500 bg-gradient-to-r ' + topic.color + ' text-white shadow-lg'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                      }`}
+                    }`}
                     variants={itemVariants}
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="text-3xl mb-2">{topic.emoji}</div>
-                    <div className="font-semibold">{topic.name}</div>
+                    <div className="text-2xl sm:text-3xl mb-2">{topic.emoji}</div>
+                    <div className="font-semibold text-sm sm:text-base leading-tight">
+                      {topic.name}
+                    </div>
                   </motion.button>
                 );
               })}
@@ -303,16 +307,17 @@ const IntroPage = () => {
 
           {/* Step 2: Confirmation */}
           {currentStep === 2 && (
-            <motion.div variants={itemVariants} className="space-y-6">
+            <motion.div variants={itemVariants} className="space-y-4 sm:space-y-6 px-2">
               <motion.div
-                className="text-6xl mb-6"
+                className="text-4xl sm:text-6xl mb-4 sm:mb-6"
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 0.6, ease: "easeInOut" }}
               >
                 🎉
               </motion.div>
-              <div className="bg-gray-50 rounded-2xl p-6 text-left">
-                <h3 className="font-semibold text-gray-800 mb-3">Welcome abord&nbsp;
+              <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-left">
+                <h3 className="font-semibold text-gray-800 mb-2 sm:mb-3 text-sm sm:text-base">
+                  Welcome aboard&nbsp;
                   <motion.span
                     className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
                     animate={{
@@ -330,12 +335,13 @@ const IntroPage = () => {
                     {displayName}
                   </motion.span>
                 </h3>
-                <div className="text-gray-600">
-                  <div className="flex flex-wrap gap-2 mt-2">
+                <div className="text-gray-600 text-sm sm:text-base">
+                  <div className="text-xs sm:text-sm text-gray-500 mb-2">Your interests:</div>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {selectedInterests.map((interest) => (
                       <span
                         key={interest.id}
-                        className={`px-3 py-1 rounded-full text-sm text-white bg-gradient-to-r ${interest.color}`}
+                        className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm text-white bg-gradient-to-r ${interest.color}`}
                       >
                         {interest.emoji} {interest.name}
                       </span>
@@ -349,15 +355,16 @@ const IntroPage = () => {
 
         {/* Action buttons */}
         <motion.div
-          className="flex justify-between items-center mt-8"
+          className="flex justify-between items-center mt-6 sm:mt-8 px-2"
           variants={itemVariants}
         >
           <motion.button
             onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-            className={`px-6 py-3 rounded-xl font-semibold transition-colors ${currentStep === 0
+            className={`px-4 py-2 sm:px-6 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-colors ${
+              currentStep === 0
                 ? 'text-gray-400 cursor-not-allowed'
                 : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-              }`}
+            }`}
             disabled={currentStep === 0}
             whileHover={currentStep > 0 ? { scale: 1.05 } : {}}
             whileTap={currentStep > 0 ? { scale: 0.95 } : {}}
@@ -368,21 +375,23 @@ const IntroPage = () => {
           <motion.button
             onClick={currentStep === steps.length - 1 ? handleFinish : handleNext}
             disabled={!canProceed() || isLoading}
-            className={`px-8 py-3 rounded-xl font-semibold shadow-lg transition-all ${canProceed() && !isLoading
+            className={`px-6 py-2 sm:px-8 sm:py-3 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base shadow-lg transition-all ${
+              canProceed() && !isLoading
                 ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-xl'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            whileHover={canProceed() && !isLoading ? { scale: 1.05, y: -2 } : {}}
+            }`}
+            whileHover={canProceed() && !isLoading ? { scale: 1.05, y: -1 } : {}}
             whileTap={canProceed() && !isLoading ? { scale: 0.95 } : {}}
           >
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <motion.div
-                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                  className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                 />
-                Setting up...
+                <span className="hidden sm:inline">Setting up...</span>
+                <span className="sm:hidden">Setup...</span>
               </div>
             ) : currentStep === steps.length - 1 ? (
               "Let's Go!"

@@ -56,7 +56,7 @@ async function isInsult(message) {
       const prediction = predictionResponse.data.predictions[0].prediction;
       const p = predictionResponse.data.predictions[0].probability;
       console.log(prediction, " :: ", p);
-      return (prediction === "Insult" && p >= 0.6) || (prediction === "Neutral" && p <= 0.5) || (prediction === "Spam" && p <= 0.5);
+      return (prediction === "Insult");
     }
     return false;
   } catch (error) {
