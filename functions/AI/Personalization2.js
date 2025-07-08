@@ -8,14 +8,7 @@ const {getFirestore} = require("firebase-admin/firestore");
 const db = getFirestore();
 const router = express.Router();
 
-// Cache for personalization data (in production, use Redis)
-const personalizationCache = new Map();
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
-
-/**
- * Personalized Blog Filtering API
- * GET /api/blogs
- */
+// Get blogs
 router.get("/blogs", async (req, res) => {
   try {
     const {
@@ -201,8 +194,9 @@ async function enhanceBlogsWithUserDataAndComments(blogs) {
 /**
  * Get filtered blogs based on provided filters
  */
-async function getFilteredBlogs({range, date, author, tags, sortBy, limit, cursor}) {
+async function getFilteredBlogs({range, date, author, tags, sortBy, limit, cursor, excludeUid}) {
   let query = db.collection("blogs");
+  let isAuthorQuery = false;
 
   // Apply filters
   if (range) {
@@ -229,6 +223,7 @@ async function getFilteredBlogs({range, date, author, tags, sortBy, limit, curso
     if (!userQuery.empty) {
       const authorUid = userQuery.docs[0].id;
       query = query.where("uid", "==", authorUid);
+      isAuthorQuery = true;
     } else {
       // No user found with this displayName
       return {blogs: [], nextCursor: null};
@@ -266,6 +261,11 @@ async function getFilteredBlogs({range, date, author, tags, sortBy, limit, curso
     ...doc.data(),
   }));
 
+  // Filter out own blogs if excludeUid is provided
+  if (excludeUid && !isAuthorQuery) {
+    blogs = blogs.filter((blog) => blog.uid !== excludeUid);
+  }
+
   // Handle tag filtering (fuzzy matching)
   if (tags && tags.length > 0) {
     blogs = filterByTags(blogs, tags);
@@ -285,7 +285,7 @@ async function getPersonalizedBlogs(uid, limit, cursor) {
 
   if (!personalizationData) {
     // Fallback to latest blogs for new users
-    return await getFilteredBlogs({sortBy: "latest", limit, cursor});
+    return await getFilteredBlogs({sortBy: "latest", limit, cursor, excludeUid: uid});
   }
 
   const {following, likedTags, likedUsers, interests} = personalizationData;
@@ -296,7 +296,7 @@ async function getPersonalizedBlogs(uid, limit, cursor) {
 
   // Get personalized content in parallel
   const [personalizedBlogs, freshBlogs] = await Promise.all([
-    getPersonalizedContent(uid, personalizedLimit, cursor, {
+    getPersonalizedContent(uid, personalizedLimit*2, cursor, {
       following,
       likedTags,
       likedUsers,
@@ -305,9 +305,45 @@ async function getPersonalizedBlogs(uid, limit, cursor) {
     getFreshContent(uid, freshLimit, {following, likedTags, likedUsers}),
   ]);
 
-  // Combine and apply diversity controls
-  let combinedBlogs = [...personalizedBlogs, ...freshBlogs];
+  // Combine and ensure uniqueness
+  const seenBlogIds = new Set();
+  let combinedBlogs = [];
+
+  // Add personalized blogs first (higher priority)
+  personalizedBlogs.forEach((blog) => {
+    if (!seenBlogIds.has(blog.id)) {
+      combinedBlogs.push(blog);
+      seenBlogIds.add(blog.id);
+    }
+  });
+
+  // Add fresh blogs (avoiding duplicates)
+  freshBlogs.forEach((blog) => {
+    if (!seenBlogIds.has(blog.id)) {
+      combinedBlogs.push(blog);
+      seenBlogIds.add(blog.id);
+    }
+  });
+
+  // Apply diversity controls
   combinedBlogs = applyDiversityControls(combinedBlogs);
+
+  // If we still need more blogs, get additional fresh content
+  if (combinedBlogs.length < limit) {
+    const additionalFresh = await getFreshContent(uid, limit - combinedBlogs.length, {
+      following,
+      likedTags,
+      likedUsers,
+    });
+
+    // Add additional fresh blogs (avoiding duplicates)
+    additionalFresh.forEach((blog) => {
+      if (!seenBlogIds.has(blog.id) && combinedBlogs.length < limit) {
+        combinedBlogs.push(blog);
+        seenBlogIds.add(blog.id);
+      }
+    });
+  }
 
   // Sort by recommendation score and creation time
   combinedBlogs.sort((a, b) => {
@@ -336,23 +372,21 @@ async function getPersonalizedContent(uid, limit, cursor, {following, likedTags,
   const personalizedBlogs = [];
   const seenBlogIds = new Set();
 
-  // 1. Content from followed users (40% of personalized = 32% of total)
-  const followingLimit = Math.ceil(limit * 0.4);
+  // 1. Content from followed users (higher priority)
   if (following.length > 0) {
-    const followingBlogs = await getBlogsByUsers(following, followingLimit);
+    const followingBlogs = await getBlogsByUsers(following, Math.ceil(limit * 0.4), uid);
     followingBlogs.forEach((blog) => {
       if (!seenBlogIds.has(blog.id)) {
-        blog.score = 100 + (50 - personalizedBlogs.length); // High priority
+        blog.score = 100 + (50 - personalizedBlogs.length);
         personalizedBlogs.push(blog);
         seenBlogIds.add(blog.id);
       }
     });
   }
 
-  // 2. Content from liked tags (25% of personalized = 20% of total)
-  const likedTagsLimit = Math.ceil(limit * 0.25);
+  // 2. Content from liked tags
   if (likedTags.length > 0) {
-    const tagBlogs = await getBlogsByTags(likedTags.slice(0, 10), likedTagsLimit);
+    const tagBlogs = await getBlogsByTags(likedTags.slice(0, 10), Math.ceil(limit * 0.3), uid);
     tagBlogs.forEach((blog) => {
       if (!seenBlogIds.has(blog.id)) {
         const tagScore = calculateTagScore(blog.tags, likedTags);
@@ -363,24 +397,22 @@ async function getPersonalizedContent(uid, limit, cursor, {following, likedTags,
     });
   }
 
-  // 3. Content from liked users (10% of personalized = 8% of total)
-  const likedUsersLimit = Math.ceil(limit * 0.1);
+  // 3. Content from liked users
   if (likedUsers.length > 0) {
-    const userBlogs = await getBlogsByUsers(likedUsers.slice(0, 10), likedUsersLimit);
+    const userBlogs = await getBlogsByUsers(likedUsers.slice(0, 10), Math.ceil(limit * 0.2), uid);
     userBlogs.forEach((blog) => {
       if (!seenBlogIds.has(blog.id)) {
         const userIndex = likedUsers.indexOf(blog.uid);
-        blog.score = 70 + (10 - userIndex); // LRU based scoring
+        blog.score = 70 + (10 - userIndex);
         personalizedBlogs.push(blog);
         seenBlogIds.add(blog.id);
       }
     });
   }
 
-  // 4. Content from user interests (5% of personalized = 4% of total)
-  const interestsLimit = Math.ceil(limit * 0.05);
+  // 4. Content from user interests
   if (interests.length > 0) {
-    const interestBlogs = await getBlogsByTags(interests, interestsLimit);
+    const interestBlogs = await getBlogsByTags(interests, Math.ceil(limit * 0.1), uid);
     interestBlogs.forEach((blog) => {
       if (!seenBlogIds.has(blog.id)) {
         blog.score = 60 + calculateTagScore(blog.tags, interests);
@@ -399,23 +431,43 @@ async function getPersonalizedContent(uid, limit, cursor, {following, likedTags,
 async function getFreshContent(uid, limit, {following, likedTags, likedUsers}) {
   const freshBlogs = [];
   const excludeUsers = new Set([uid, ...following, ...likedUsers]);
+  const seenBlogIds = new Set();
 
   // Get recent popular blogs from new authors
   const popularQuery = db.collection("blogs")
-      .where("createdAt", ">=", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) // Last 7 days
+      .where("createdAt", ">=", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
       .orderBy("likes", "desc")
       .orderBy("createdAt", "desc")
-      .limit(limit * 3); // Get more to filter out
+      .limit(limit * 3);
 
   const popularSnapshot = await popularQuery.get();
 
   popularSnapshot.docs.forEach((doc) => {
     const blog = {id: doc.id, ...doc.data()};
-    if (!excludeUsers.has(blog.uid) && freshBlogs.length < limit) {
+    if (!excludeUsers.has(blog.uid) && !seenBlogIds.has(blog.id) && freshBlogs.length < limit) {
       blog.score = 50 + (blog.likes * 2) + (blog.comments * 3);
       freshBlogs.push(blog);
+      seenBlogIds.add(blog.id);
     }
   });
+
+  // If we still don't have enough, get more recent blogs
+  if (freshBlogs.length < limit) {
+    const recentQuery = db.collection("blogs")
+        .orderBy("createdAt", "desc")
+        .limit((limit - freshBlogs.length) * 2);
+
+    const recentSnapshot = await recentQuery.get();
+
+    recentSnapshot.docs.forEach((doc) => {
+      const blog = {id: doc.id, ...doc.data()};
+      if (!excludeUsers.has(blog.uid) && !seenBlogIds.has(blog.id) && freshBlogs.length < limit) {
+        blog.score = 30 + (blog.likes * 1) + (blog.comments * 2);
+        freshBlogs.push(blog);
+        seenBlogIds.add(blog.id);
+      }
+    });
+  }
 
   return freshBlogs;
 }
@@ -457,19 +509,9 @@ function applyDiversityControls(blogs) {
 }
 
 /**
- * Get user's personalization data with caching
+ * Get user's personalization data
  */
 async function getUserPersonalizationData(uid) {
-  const cacheKey = `personalization_${uid}`;
-
-  // Check cache
-  if (personalizationCache.has(cacheKey)) {
-    const cached = personalizationCache.get(cacheKey);
-    if (Date.now() - cached.timestamp < CACHE_TTL) {
-      return cached.data;
-    }
-  }
-
   try {
     const [followsDoc, likesDoc, topicsDoc] = await Promise.all([
       db.collection("users").doc(uid).collection("personalize").doc("follows").get(),
@@ -484,12 +526,6 @@ async function getUserPersonalizationData(uid) {
       interests: topicsDoc.exists ? (topicsDoc.data().interests || []) : [],
     };
 
-    // Cache the data
-    personalizationCache.set(cacheKey, {
-      data: personalizationData,
-      timestamp: Date.now(),
-    });
-
     return personalizationData;
   } catch (error) {
     console.error("Error fetching personalization data:", error);
@@ -500,15 +536,22 @@ async function getUserPersonalizationData(uid) {
 /**
  * Helper function to get blogs by user IDs
  */
-async function getBlogsByUsers(userIds, limit) {
+async function getBlogsByUsers(userIds, limit, excludeUid = null) {
   if (userIds.length === 0) return [];
 
+  // Remove excludeUid from userIds if present
+  const filteredUserIds = excludeUid ? userIds.filter((id) => id !== excludeUid) : userIds;
+
+  if (filteredUserIds.length === 0) return [];
+
   const chunks = [];
-  for (let i = 0; i < userIds.length; i += 10) {
-    chunks.push(userIds.slice(i, i + 10));
+  for (let i = 0; i < filteredUserIds.length; i += 10) {
+    chunks.push(filteredUserIds.slice(i, i + 10));
   }
 
   const allBlogs = [];
+  const seenBlogIds = new Set();
+
   for (const chunk of chunks) {
     const query = db.collection("blogs")
         .where("uid", "in", chunk)
@@ -517,7 +560,12 @@ async function getBlogsByUsers(userIds, limit) {
 
     const snapshot = await query.get();
     snapshot.docs.forEach((doc) => {
-      allBlogs.push({id: doc.id, ...doc.data()});
+      const blog = {id: doc.id, ...doc.data()};
+      // Double-check to exclude own blogs and ensure uniqueness
+      if ((!excludeUid || blog.uid !== excludeUid) && !seenBlogIds.has(blog.id)) {
+        allBlogs.push(blog);
+        seenBlogIds.add(blog.id);
+      }
     });
 
     if (allBlogs.length >= limit) break;
@@ -529,7 +577,7 @@ async function getBlogsByUsers(userIds, limit) {
 /**
  * Helper function to get blogs by tags
  */
-async function getBlogsByTags(tags, limit) {
+async function getBlogsByTags(tags, limit, excludeUid = null) {
   if (tags.length === 0) return [];
 
   const query = db.collection("blogs")
@@ -538,7 +586,12 @@ async function getBlogsByTags(tags, limit) {
       .limit(limit * 2);
 
   const snapshot = await query.get();
-  const blogs = snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+  let blogs = snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()}));
+
+  // Filter out own blogs
+  if (excludeUid) {
+    blogs = blogs.filter((blog) => blog.uid !== excludeUid);
+  }
 
   return filterByTags(blogs, tags).slice(0, limit);
 }

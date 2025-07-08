@@ -58,13 +58,6 @@ const BlogCard = forwardRef(({
             <p className="text-xs text-gray-500">{formatTimeAgo(blog.createdAt)}</p>
           </div>
         </div>
-        <div className="flex items-center space-x-1">
-          <button className="p-1 hover:bg-gray-100 rounded-full">
-            <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-            </svg>
-          </button>
-        </div>
       </div>
 
       {/* Content */}
@@ -106,28 +99,6 @@ const BlogCard = forwardRef(({
             alt="Blog Title" 
             className="w-full h-full object-fill rounded-lg hover:scale-105 transition-transform duration-300"
           />
-        </div>
-      )}
-
-      {/* Media Gallery */}
-      {blog.mediaURL && blog.mediaURL.length > 0 && (
-        <div className="px-4 mb-3">
-          <div className="grid grid-cols-2 gap-2">
-            {blog.mediaURL.slice(0, 4).map((media, index) => (
-              <div 
-                key={index}
-                className="relative h-24 bg-cover bg-center rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                style={{ backgroundImage: `url(${media})` }}
-                onClick={() => onBlogClick(blog.id)}
-              >
-                {index === 3 && blog.mediaURL.length > 4 && (
-                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">+{blog.mediaURL.length - 3}</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       )}
 

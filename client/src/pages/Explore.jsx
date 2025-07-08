@@ -470,28 +470,14 @@ const Explore = () => {
                         value={currentTag}
                         onChange={(e) => handleTagSearch(e.target.value)}
                         onFocus={() => setIsTagDropdownOpen(true)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            if (currentTag.trim() && !tempFilters.tags.includes(currentTag.trim())) {
-                              setTempFilters(prev => ({
-                                ...prev,
-                                tags: [...prev.tags, currentTag.trim()]
-                              }));
-                              setCurrentTag('');
-                              setIsTagDropdownOpen(false);
-                              setFilteredTags(availableTags);
-                            }
-                          }
-                        }}
-                        placeholder="Search or add a tag..."
+                        placeholder="Search and select from available tags..."
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
 
                       {/* Dropdown */}
                       {isTagDropdownOpen && filteredTags.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                          {filteredTags.slice(0, 10).map((tag, index) => (
+                          {filteredTags.map((tag, index) => (
                             <button
                               key={index}
                               onClick={() => handleSelectTag(tag)}
@@ -507,25 +493,23 @@ const Explore = () => {
                           ))}
                         </div>
                       )}
-                    </div>
 
-                    <button
-                      onClick={() => {
-                        if (currentTag.trim() && !tempFilters.tags.includes(currentTag.trim())) {
-                          setTempFilters(prev => ({
-                            ...prev,
-                            tags: [...prev.tags, currentTag.trim()]
-                          }));
-                          setCurrentTag('');
-                          setIsTagDropdownOpen(false);
-                          setFilteredTags(availableTags);
-                        }
-                      }}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Add
-                    </button>
+                      {/* No results message */}
+                      {isTagDropdownOpen && filteredTags.length === 0 && currentTag.trim() && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3">
+                          <p className="text-gray-500 text-sm">No tags found matching "{currentTag}"</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Click outside to close dropdown */}
+                  {isTagDropdownOpen && (
+                    <div
+                      className="fixed inset-0 z-5"
+                      onClick={() => setIsTagDropdownOpen(false)}
+                    ></div>
+                  )}
 
                   {/* Selected Tags */}
                   {tempFilters.tags.length > 0 && (

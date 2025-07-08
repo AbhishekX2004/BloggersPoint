@@ -24,7 +24,7 @@ const IntroPage = () => {
     { id: 1, name: 'Artificial Intelligence', emoji: '🤖', color: 'from-blue-500 to-cyan-500' },
     { id: 2, name: 'Web Development', emoji: '🌐', color: 'from-green-500 to-teal-500' },
     { id: 3, name: 'Education And Learning', emoji: '📚', color: 'from-emerald-500 to-green-600' },
-    { id: 4, name: 'Health and Fitness', emoji: '🏋️', color: 'from-purple-500 to-pink-500' },
+    { id: 4, name: 'Health And Fitness', emoji: '🏋️', color: 'from-purple-500 to-pink-500' },
     { id: 5, name: 'Cryptocurrency', emoji: '₿', color: 'from-orange-500 to-red-500' },
     { id: 6, name: 'Quantum Computing', emoji: '⚛️', color: 'from-indigo-500 to-purple-600' }
   ];
