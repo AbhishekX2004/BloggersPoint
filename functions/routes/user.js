@@ -109,7 +109,7 @@ router.post("/gs", async (req, res) => {
       interests: interests,
     }, {merge: true});
 
-    return res.status(200).json({message: "Getting Started information saved successfully."});
+    return res.status(201).json({message: "Getting Started information saved successfully."});
   } catch (error) {
     console.error("Error saving Getting Started information:", error);
     return res.status(500).json({error: "Internal Server Error", message: error.message});

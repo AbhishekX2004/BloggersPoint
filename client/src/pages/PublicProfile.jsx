@@ -19,7 +19,6 @@ const PublicProfile = () => {
 	const [isFollowing, setIsFollowing] = useState(false);
 	const [followers, setFollowers] = useState(0);
 	const [userInterests, setUserInterests] = useState([]);
-	const [allTags, setAllTags] = useState([]);
 	const { info } = useNotification();
 
 	useEffect(() => {
@@ -42,14 +41,7 @@ const PublicProfile = () => {
 			setFollowers(profileResponse.data.followers || 0);
 
 			// Fetch user interests and all tags in parallel
-			const [tagsResponse, interestsResponse] = await Promise.all([
-				axios.get(`${API}/params/tags`),
-				axios.get(`${API}/user/interests?uid=${profileUid}`)
-			]);
-
-			if (tagsResponse.data.status === 'success') {
-				setAllTags(tagsResponse.data.tags);
-			}
+			const interestsResponse = await axios.get(`${API}/user/interests?uid=${profileUid}`);
 
 			if (interestsResponse.data.status === 'success') {
 				setUserInterests(interestsResponse.data.interests);

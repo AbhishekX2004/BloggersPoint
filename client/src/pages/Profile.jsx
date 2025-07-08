@@ -30,7 +30,7 @@ const Profile = () => {
 	const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 	const [showInterestsModal, setShowInterestsModal] = useState(false);
 	const [showFollowingModal, setShowFollowingModal] = useState(false);
-	const { error } = useNotification();
+	const { success, error } = useNotification();
 
 	useEffect(() => {
 		// Check authentication
@@ -265,7 +265,10 @@ const Profile = () => {
 									className="bg-red-500 text-white px-6 py-2 rounded-lg font-semibold shadow-lg"
 									whileHover={{ scale: 1.05 }}
 									whileTap={{ scale: 0.95 }}
-									onClick={() => signOut(auth)}
+									onClick={() => {
+										signOut(auth);
+										success("Logged out successfully!")
+									}}
 								>
 									Sign Out
 								</motion.button>
