@@ -1,0 +1,1 @@
+{"max_words": 15000, "max_title_len": 50, "max_content_len": 400, "embedding_dim": 128}

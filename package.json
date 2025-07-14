@@ -10,7 +10,17 @@
     "client": "cd client && npm run dev",
     "deploy": "npm run build-client && cross-env NODE_ENV=production firebase deploy",
     "build-client": "cd client && npm run build",
-    "install-all": "npm install && concurrently \"cd functions && npm install\" \"cd client && npm install\""
+    "install-all": "npm install && concurrently \"cd functions && npm install\" \"cd client && npm install\"",
+
+    "setup-model": "cd models/BlogTagPredictor && python -m pip install -r requirements.txt",
+    "start-model": "cd models/BlogTagPredictor && python main.py",
+    
+    
+    "deploy-model": "npm run setup-model && npm run train-model",
+    "train-model": "cd models/BlogTagPredictor && python -c \"from BlogTaggingModel import BlogTaggingModel; from training_data import training_data; model = BlogTaggingModel(); titles = [item['title'] for item in training_data]; contents = [item['content'] for item in training_data]; tags_list = [item['tags'] for item in training_data]; model.train(titles, contents, tags_list, epochs=25); model.save_model('blog_tagging_model'); print('Model trained and saved!')\"",
+    "dev-all": "concurrently \"npm run server\" \"npm run client\" \"npm run start-model\"",
+    "model-health": "curl -X GET http://localhost:8000/health || echo 'Model server not running'",
+    "model-info": "curl -X GET http://localhost:8000/training-info || echo 'Model server not running'"
   },
   "keywords": [],
   "author": "Abhishek Verma",
