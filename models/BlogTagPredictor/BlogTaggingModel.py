@@ -1,321 +1,584 @@
 import tensorflow as tf
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Input, Dense, Embedding, LSTM, Dropout, GlobalMaxPooling1D, concatenate, MultiHeadAttention, LayerNormalization
+from tensorflow.keras.layers import Input, Dense, Embedding, LSTM, Dropout, GlobalMaxPooling1D, concatenate, MultiHeadAttention, LayerNormalization, Conv1D, MaxPooling1D, Flatten, GRU, Bidirectional
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.multioutput import MultiOutputClassifier
 import numpy as np
 import pandas as pd
 import pickle
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import re
 import emoji
 import unicodedata
-from collections import Counter
+from collections import Counter, defaultdict
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+import warnings
+warnings.filterwarnings('ignore')
+
+# Download required NLTK data
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords')
+
+try:
+    nltk.data.find('corpora/wordnet')
+except LookupError:
+    nltk.download('wordnet')
+
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab')
 
 class BlogTaggingModel:
-    def __init__(self, max_words=15000, max_title_len=50, max_content_len=400, embedding_dim=128):
+    def __init__(self, config_path='blog_config.py', max_words=20000, max_title_len=60, max_content_len=500, embedding_dim=128):
+        self.config_path = config_path
         self.max_words = max_words
         self.max_title_len = max_title_len
         self.max_content_len = max_content_len
         self.embedding_dim = embedding_dim
+        
+        # Core components
         self.tokenizer = None
         self.mlb = None
-        self.model = None
         self.tfidf_vectorizer = None
+        self.lemmatizer = WordNetLemmatizer()
+        self.stop_words = set(stopwords.words('english'))
         
-    def preprocess_text(self, text):
-        """Clean and preprocess text while preserving emojis"""
-        # Convert to lowercase (but preserve emojis)
+        # Models for ensembling
+        self.lstm_model = None
+        self.cnn_model = None
+        self.gru_model = None
+        self.rf_model = None
+        
+        # Configuration mappings
+        self.available_tags = []
+        self.word_to_tag_mappings = {}
+        self.tag_synonyms = {}
+        self.domain_patterns = {}
+        
+        # Load configuration
+        self.load_config()
+        
+        # preprocessing components
+        self.build_preprocessing_maps()
+    
+    def load_config(self):
+        """Load configuration from blog_config.py"""
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("blog_config", self.config_path)
+            config = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(config)
+            
+            # Load available tags
+            self.available_tags = getattr(config, 'AVAILABLE_TAGS', [])
+            
+            # Load all mapping dictionaries
+            mapping_names = [
+                'PROGRAMMING_LANGUAGES', 'COUNTRIES', 'CONTINENTS', 'SEVEN_WONDERS',
+                'FRUITS', 'VEGETABLES', 'CUISINE', 'CULTURE', 'WILDLIFE',
+                'PLANETS_STARS', 'TECH_TERMS', 'CAREER', 'MOVIES_AND_ENTERTAINMENT'
+            ]
+            
+            for mapping_name in mapping_names:
+                if hasattr(config, mapping_name):
+                    mapping_dict = getattr(config, mapping_name)
+                    self.word_to_tag_mappings[mapping_name] = mapping_dict
+                    
+        except Exception as e:
+            print(f"Warning: Could not load config from {self.config_path}: {e}")
+            print("Using default configuration...")
+            self.available_tags = []
+            self.word_to_tag_mappings = {}
+    
+    def build_preprocessing_maps(self):
+        """Build comprehensive preprocessing maps from config"""
+        # Create reverse mapping from words to tags
+        self.word_to_tag_reverse = {}
+        
+        for category, mapping in self.word_to_tag_mappings.items():
+            for word_list, tag in mapping.items():
+                if isinstance(word_list, str):
+                    word_list = [word_list]
+                for word in word_list:
+                    self.word_to_tag_reverse[word.lower()] = tag
+        
+        # Build domain-specific patterns
+        self.domain_patterns = {
+            'programming': re.compile(r'\b(code|coding|programming|python|java|javascript|html|css|sql|algorithm|function|variable|loop|api|framework|library|debug|git|github|software|development|web|app|mobile|frontend|backend|fullstack|devops|database|server|cloud|aws|azure|docker|kubernetes)\b', re.IGNORECASE),
+            'technology': re.compile(r'\b(tech|technology|ai|artificial intelligence|machine learning|deep learning|neural network|blockchain|cryptocurrency|iot|vr|ar|virtual reality|augmented reality|robotics|automation|digital|innovation|startup|disruption)\b', re.IGNORECASE),
+            'travel': re.compile(r'\b(travel|trip|vacation|holiday|tourism|destination|hotel|flight|passport|visa|backpack|adventure|explore|culture|cuisine|local|guide|itinerary|budget|solo|family)\b', re.IGNORECASE),
+            'food': re.compile(r'\b(food|recipe|cooking|chef|restaurant|dish|meal|ingredient|flavor|taste|cuisine|kitchen|bake|fry|grill|healthy|diet|nutrition|organic|vegan|vegetarian)\b', re.IGNORECASE),
+            'health': re.compile(r'\b(health|fitness|exercise|workout|gym|nutrition|diet|wellness|medical|doctor|hospital|medicine|treatment|therapy|mental health|stress|meditation|yoga|sleep|weight)\b', re.IGNORECASE),
+            'business': re.compile(r'\b(business|entrepreneur|startup|company|marketing|sales|finance|investment|profit|revenue|strategy|management|leadership|team|productivity|innovation|growth|success)\b', re.IGNORECASE),
+            'education': re.compile(r'\b(education|learning|school|university|course|study|student|teacher|professor|degree|certification|skill|knowledge|training|tutorial|academic|research|science)\b', re.IGNORECASE),
+            'entertainment': re.compile(r'\b(movie|film|music|game|gaming|book|reading|art|culture|entertainment|celebrity|actor|singer|musician|artist|concert|festival|show|series|tv|streaming)\b', re.IGNORECASE)
+        }
+    
+    def preprocess_text(self, text: str) -> str:
+        """Text preprocessing with config-based mappings"""
+        if not text:
+            return ""
+        
+        # Convert to lowercase
         text = text.lower()
         
         # Remove HTML tags
         text = re.sub(r'<[^>]+>', '', text)
         
-        # Remove URLs
-        text = re.sub(r'http\S+|www\S+|https\S+', '', text)
+        # Remove URLs but keep domain information
+        url_pattern = re.compile(r'https?://(?:www\.)?([^/\s]+)')
+        urls = url_pattern.findall(text)
+        for url in urls:
+            if any(domain in url for domain in ['github', 'stackoverflow', 'medium', 'dev.to']):
+                text = text.replace(url, 'programming_platform')
+        text = re.sub(r'https?://\S+', '', text)
         
-        # Convert emojis to text descriptions
-        # This creates tokens like ":thumbs_up:" which can be learned by the model
+        # Handle emojis - convert to text but also extract sentiment
+        emoji_sentiment = self.extract_emoji_sentiment(text)
         text = emoji.demojize(text, delimiters=(" :", ": "))
         
-        # Keep alphanumeric, spaces, and emoji-related characters
-        # This regex preserves emoji text representations and basic punctuation
-        text = re.sub(r'[^\w\s:_-]', ' ', text)
+        # Extract and map technical terms, locations, etc.
+        mapped_text = self.apply_config_mappings(text)
         
-        # Remove extra whitespace
+        # Tokenize and lemmatize
+        tokens = word_tokenize(mapped_text)
+        
+        # Remove stopwords and apply lemmatization
+        processed_tokens = []
+        for token in tokens:
+            if token not in self.stop_words and len(token) > 2:
+                lemmatized = self.lemmatizer.lemmatize(token)
+                processed_tokens.append(lemmatized)
+        
+        # Add emoji sentiment context
+        if emoji_sentiment:
+            processed_tokens.extend(emoji_sentiment)
+        
+        # Add domain context
+        domain_context = self.extract_domain_context(text)
+        processed_tokens.extend(domain_context)
+        
+        # Clean up and join
+        text = ' '.join(processed_tokens)
+        text = re.sub(r'[^\w\s:_-]', ' ', text)
         text = ' '.join(text.split())
         
         return text
     
-    def extract_emojis(self, text):
-        """Extract emojis from text for additional context"""
-        # Extract actual emoji characters
-        emoji_pattern = re.compile(
-            "["
-            "\U0001F600-\U0001F64F"  # emoticons
-            "\U0001F300-\U0001F5FF"  # symbols & pictographs
-            "\U0001F680-\U0001F6FF"  # transport & map symbols
-            "\U0001F1E0-\U0001F1FF"  # flags (iOS)
-            "\U00002702-\U000027B0"  # dingbats
-            "\U000024C2-\U0001F251"
-            "]+", flags=re.UNICODE
-        )
+    def extract_emoji_sentiment(self, text: str) -> List[str]:
+        """Extract sentiment context from emojis"""
+        positive_emojis = ['😄', '😊', '😍', '🎉', '👍', '❤️', '😁', '🤗', '😎', '✨', '🌟', '💯', '🔥', '🚀']
+        negative_emojis = ['😢', '😞', '😰', '😱', '👎', '💔', '😡', '😠', '😤', '🤬', '💀', '⚠️']
+        neutral_emojis = ['🤔', '😐', '😶', '🙃', '😇', '🤷', '💭', '📝', '📚', '💡']
         
-        emojis = emoji_pattern.findall(text)
-        return emojis
+        sentiment_context = []
+        
+        for emoji_char in text:
+            if emoji_char in positive_emojis:
+                sentiment_context.append('positive_emotion')
+            elif emoji_char in negative_emojis:
+                sentiment_context.append('negative_emotion')
+            elif emoji_char in neutral_emojis:
+                sentiment_context.append('neutral_emotion')
+        
+        return sentiment_context
     
-    def enhance_text_with_emoji_context(self, text):
-        """Enhance text with emoji context for better understanding"""
-        # Extract emojis before preprocessing
-        emojis = self.extract_emojis(text)
+    def apply_config_mappings(self, text: str) -> str:
+        """Apply config-based word-to-tag mappings"""
+        words = text.split()
+        mapped_words = []
         
-        # Convert emojis to descriptive text
-        emoji_descriptions = []
-        for em in emojis:
-            try:
-                # Get emoji description
-                desc = emoji.demojize(em, delimiters=(" ", " "))
-                # Clean up the description
-                desc = desc.replace(":", "").replace("_", " ")
-                emoji_descriptions.append(desc)
-            except:
-                pass
+        for word in words:
+            # Check if word maps to a specific tag
+            if word in self.word_to_tag_reverse:
+                mapped_tag = self.word_to_tag_reverse[word]
+                mapped_words.append(f"{word} {mapped_tag.lower().replace(' ', '_')}")
+            else:
+                mapped_words.append(word)
         
-        # Add emoji context to text
-        if emoji_descriptions:
-            emoji_context = " ".join(emoji_descriptions)
-            enhanced_text = f"{text} {emoji_context}"
-        else:
-            enhanced_text = text
-            
-        return enhanced_text
+        return ' '.join(mapped_words)
     
-    def extract_keywords(self, text, num_keywords=20):
-        """Extract important keywords using TF-IDF"""
-        if self.tfidf_vectorizer is None:
-            return []
+    def extract_domain_context(self, text: str) -> List[str]:
+        """Extract domain-specific context"""
+        context = []
         
-        try:
-            tfidf_matrix = self.tfidf_vectorizer.transform([text])
-            feature_names = self.tfidf_vectorizer.get_feature_names_out()
-            tfidf_scores = tfidf_matrix.toarray()[0]
-            
-            # Get top keywords
-            keyword_scores = list(zip(feature_names, tfidf_scores))
-            keyword_scores.sort(key=lambda x: x[1], reverse=True)
-            
-            return [keyword for keyword, score in keyword_scores[:num_keywords] if score > 0]
-        except:
-            return []
+        for domain, pattern in self.domain_patterns.items():
+            if pattern.search(text):
+                context.append(f"domain_{domain}")
+        
+        return context
     
-    def build_model(self, num_tags):
-        """Build improved neural network model with separate title and content processing"""
-        
-        # Title input - shorter sequence, higher weight
+    def build_lstm_model(self, num_tags: int) -> Model:
+        """Build LSTM-based model"""
         title_input = Input(shape=(self.max_title_len,), name='title_input')
-        title_embedding = Embedding(input_dim=self.max_words, 
-                                   output_dim=self.embedding_dim,
-                                   input_length=self.max_title_len,
-                                   name='title_embedding')(title_input)
-        
-        # Content input - longer sequence  
         content_input = Input(shape=(self.max_content_len,), name='content_input')
-        content_embedding = Embedding(input_dim=self.max_words, 
-                                     output_dim=self.embedding_dim,
-                                     input_length=self.max_content_len,
-                                     name='content_embedding')(content_input)
         
-        # Process title - more focus on capturing key concepts
-        title_attention = MultiHeadAttention(num_heads=4, key_dim=32)(title_embedding, title_embedding)
-        title_norm = LayerNormalization()(title_attention + title_embedding)
-        title_lstm = LSTM(128, dropout=0.2, recurrent_dropout=0.2)(title_norm)
-        title_dense = Dense(128, activation='relu')(title_lstm)
+        # Shared embedding layer
+        shared_embedding = Embedding(input_dim=self.max_words, 
+                                   output_dim=self.embedding_dim,
+                                   mask_zero=True)
         
-        # Process content - broader context understanding
-        content_attention = MultiHeadAttention(num_heads=4, key_dim=32)(content_embedding, content_embedding)
-        content_norm = LayerNormalization()(content_attention + content_embedding)
-        content_lstm = LSTM(96, dropout=0.2, recurrent_dropout=0.2)(content_norm)
-        content_dense = Dense(96, activation='relu')(content_lstm)
+        title_embedded = shared_embedding(title_input)
+        content_embedded = shared_embedding(content_input)
         
-        # Combine title and content with weighted importance
-        # Title gets higher weight (2x) as it's more indicative of main topic
-        title_weighted = Dense(128, activation='relu', name='title_weighted')(title_dense)
-        content_weighted = Dense(64, activation='relu', name='content_weighted')(content_dense)
+        # Title processing with attention
+        title_attention = MultiHeadAttention(num_heads=4, key_dim=32)(title_embedded, title_embedded)
+        title_norm = LayerNormalization()(title_attention + title_embedded)
+        title_lstm = Bidirectional(LSTM(64, dropout=0.3, recurrent_dropout=0.3))(title_norm)
         
-        # Concatenate weighted features
+        # Content processing with attention
+        content_attention = MultiHeadAttention(num_heads=4, key_dim=32)(content_embedded, content_embedded)
+        content_norm = LayerNormalization()(content_attention + content_embedded)
+        content_lstm = Bidirectional(LSTM(64, dropout=0.3, recurrent_dropout=0.3))(content_norm)
+        
+        # Combine with different weights
+        title_weighted = Dense(128, activation='relu')(title_lstm)
+        content_weighted = Dense(64, activation='relu')(content_lstm)
+        
         combined = concatenate([title_weighted, content_weighted])
         
-        # Final processing layers
-        combined_dense1 = Dense(256, activation='relu')(combined)
-        combined_dropout1 = Dropout(0.5)(combined_dense1)
+        # Final layers
+        dense1 = Dense(256, activation='relu')(combined)
+        dropout1 = Dropout(0.5)(dense1)
+        dense2 = Dense(128, activation='relu')(dropout1)
+        dropout2 = Dropout(0.3)(dense2)
         
-        combined_dense2 = Dense(128, activation='relu')(combined_dropout1)
-        combined_dropout2 = Dropout(0.3)(combined_dense2)
-        
-        # Output layer
-        output = Dense(num_tags, activation='sigmoid', name='tag_output')(combined_dropout2)
+        output = Dense(num_tags, activation='sigmoid')(dropout2)
         
         model = Model(inputs=[title_input, content_input], outputs=output)
-        
-        # Use custom weighted loss to emphasize title importance
-        model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-            loss='binary_crossentropy',
-            metrics=['accuracy', 'precision', 'recall']
-        )
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
         
         return model
     
-    def prepare_data(self, titles, contents, tags_list):
-        """Prepare data for training with separate title and content processing"""
+    def build_cnn_model(self, num_tags: int) -> Model:
+        """Build CNN-based model"""
+        title_input = Input(shape=(self.max_title_len,), name='title_input')
+        content_input = Input(shape=(self.max_content_len,), name='content_input')
         
-        # Enhance text with emoji context before preprocessing
-        enhanced_titles = [self.enhance_text_with_emoji_context(title) for title in titles]
-        enhanced_contents = [self.enhance_text_with_emoji_context(content) for content in contents]
+        shared_embedding = Embedding(input_dim=self.max_words, 
+                                   output_dim=self.embedding_dim)
         
-        # Process titles and contents separately
-        processed_titles = [self.preprocess_text(title) for title in enhanced_titles]
-        processed_contents = [self.preprocess_text(content) for content in enhanced_contents]
+        title_embedded = shared_embedding(title_input)
+        content_embedded = shared_embedding(content_input)
         
-        # Combine all text for tokenizer training (but keep separate for actual training)
+        # Title CNN
+        title_conv1 = Conv1D(128, 3, activation='relu')(title_embedded)
+        title_conv2 = Conv1D(128, 4, activation='relu')(title_embedded)
+        title_conv3 = Conv1D(128, 5, activation='relu')(title_embedded)
+        
+        title_pool1 = GlobalMaxPooling1D()(title_conv1)
+        title_pool2 = GlobalMaxPooling1D()(title_conv2)
+        title_pool3 = GlobalMaxPooling1D()(title_conv3)
+        
+        title_features = concatenate([title_pool1, title_pool2, title_pool3])
+        
+        # Content CNN
+        content_conv1 = Conv1D(64, 3, activation='relu')(content_embedded)
+        content_conv2 = Conv1D(64, 4, activation='relu')(content_embedded)
+        content_conv3 = Conv1D(64, 5, activation='relu')(content_embedded)
+        
+        content_pool1 = GlobalMaxPooling1D()(content_conv1)
+        content_pool2 = GlobalMaxPooling1D()(content_conv2)
+        content_pool3 = GlobalMaxPooling1D()(content_conv3)
+        
+        content_features = concatenate([content_pool1, content_pool2, content_pool3])
+        
+        # Combine
+        combined = concatenate([title_features, content_features])
+        
+        dense1 = Dense(256, activation='relu')(combined)
+        dropout1 = Dropout(0.5)(dense1)
+        dense2 = Dense(128, activation='relu')(dropout1)
+        dropout2 = Dropout(0.3)(dense2)
+        
+        output = Dense(num_tags, activation='sigmoid')(dropout2)
+        
+        model = Model(inputs=[title_input, content_input], outputs=output)
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+        
+        return model
+    
+    def build_gru_model(self, num_tags: int) -> Model:
+        """Build GRU-based model"""
+        title_input = Input(shape=(self.max_title_len,), name='title_input')
+        content_input = Input(shape=(self.max_content_len,), name='content_input')
+        
+        shared_embedding = Embedding(input_dim=self.max_words, 
+                                   output_dim=self.embedding_dim,
+                                   mask_zero=True)
+        
+        title_embedded = shared_embedding(title_input)
+        content_embedded = shared_embedding(content_input)
+        
+        # Title GRU
+        title_gru = Bidirectional(GRU(64, dropout=0.3, recurrent_dropout=0.3))(title_embedded)
+        
+        # Content GRU
+        content_gru = Bidirectional(GRU(64, dropout=0.3, recurrent_dropout=0.3))(content_embedded)
+        
+        # Combine
+        combined = concatenate([title_gru, content_gru])
+        
+        dense1 = Dense(256, activation='relu')(combined)
+        dropout1 = Dropout(0.5)(dense1)
+        dense2 = Dense(128, activation='relu')(dropout1)
+        dropout2 = Dropout(0.3)(dense2)
+        
+        output = Dense(num_tags, activation='sigmoid')(dropout2)
+        
+        model = Model(inputs=[title_input, content_input], outputs=output)
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+        
+        return model
+    
+    def prepare_data(self, titles: List[str], contents: List[str], tags_list: List[List[str]]) -> Tuple:
+        """Prepare data with preprocessing"""
+        print("Applying preprocessing...")
+        
+        # Preprocessing
+        processed_titles = [self.preprocess_text(title) for title in titles]
+        processed_contents = [self.preprocess_text(content) for content in contents]
+        
+        # Combine for tokenizer
         all_texts = processed_titles + processed_contents
         
-        # Tokenize - fit on all text to get comprehensive vocabulary
-        # Use char_level=False to handle emoji descriptions as tokens
-        self.tokenizer = Tokenizer(num_words=self.max_words, oov_token='<OOV>', 
-                                  char_level=False, filters='')
+        # Tokenize
+        self.tokenizer = Tokenizer(num_words=self.max_words, oov_token='<OOV>')
         self.tokenizer.fit_on_texts(all_texts)
         
-        # Convert to sequences separately
+        # Convert to sequences
         title_sequences = self.tokenizer.texts_to_sequences(processed_titles)
         content_sequences = self.tokenizer.texts_to_sequences(processed_contents)
         
-        # Pad sequences with different lengths
-        X_title = pad_sequences(title_sequences, maxlen=self.max_title_len, 
-                               padding='post', truncating='post')
-        X_content = pad_sequences(content_sequences, maxlen=self.max_content_len, 
-                                 padding='post', truncating='post')
+        # Pad sequences
+        X_title = pad_sequences(title_sequences, maxlen=self.max_title_len, padding='post')
+        X_content = pad_sequences(content_sequences, maxlen=self.max_content_len, padding='post')
         
-        # Prepare TF-IDF for keyword extraction (on combined text)
+        # Prepare TF-IDF features for Random Forest
         combined_texts = [f"{title} {content}" for title, content in zip(processed_titles, processed_contents)]
-        self.tfidf_vectorizer = TfidfVectorizer(max_features=1000, stop_words='english', 
-                                               ngram_range=(1, 2))
-        self.tfidf_vectorizer.fit(combined_texts)
+        self.tfidf_vectorizer = TfidfVectorizer(max_features=5000, stop_words='english', ngram_range=(1, 3))
+        X_tfidf = self.tfidf_vectorizer.fit_transform(combined_texts)
         
-        # Prepare tags
+        # Filter tags to available tags only
+        if self.available_tags:
+            filtered_tags_list = []
+            for tags in tags_list:
+                filtered_tags = [tag for tag in tags if tag in self.available_tags]
+                filtered_tags_list.append(filtered_tags if filtered_tags else ['general'])
+            tags_list = filtered_tags_list
+        
+        # Prepare labels
         self.mlb = MultiLabelBinarizer()
         y = self.mlb.fit_transform(tags_list)
         
-        return [X_title, X_content], y
+        return [X_title, X_content], X_tfidf, y
     
-    def train(self, titles, contents, tags_list, validation_split=0.2, epochs=20, batch_size=32):
-        """Train the model with improved architecture"""
-        print("Preparing data...")
-        X, y = self.prepare_data(titles, contents, tags_list)
+    def train_ensemble(self, titles: List[str], contents: List[str], tags_list: List[List[str]], 
+                      validation_split: float = 0.2, epochs: int = 15, batch_size: int = 32):
+        """Train ensemble of models"""
+        print("Preparing data for ensemble training...")
+        X_neural, X_tfidf, y = self.prepare_data(titles, contents, tags_list)
         
-        print(f"Title shape: {X[0].shape}, Content shape: {X[1].shape}, Labels shape: {y.shape}")
+        print(f"Neural network input shapes: {X_neural[0].shape}, {X_neural[1].shape}")
+        print(f"TF-IDF input shape: {X_tfidf.shape}")
+        print(f"Labels shape: {y.shape}")
         print(f"Number of unique tags: {len(self.mlb.classes_)}")
-        print(f"Tags: {list(self.mlb.classes_)}")
         
         # Split data
         X_title_train, X_title_val, X_content_train, X_content_val, y_train, y_val = train_test_split(
-            X[0], X[1], y, test_size=validation_split, random_state=42
+            X_neural[0], X_neural[1], y, test_size=validation_split, random_state=42
         )
         
-        print("Building model...")
-        self.model = self.build_model(len(self.mlb.classes_))
+        X_tfidf_train, X_tfidf_val, _, _ = train_test_split(
+            X_tfidf, y, test_size=validation_split, random_state=42
+        )
         
-        print("Model summary:")
-        self.model.summary()
-        
-        # Callbacks for better training
+        # Callbacks
         callbacks = [
-            tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
-            tf.keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=3, min_lr=0.00001)
+            tf.keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True),
+            tf.keras.callbacks.ReduceLROnPlateau(factor=0.5, patience=2, min_lr=0.00001)
         ]
         
-        print("Training model...")
-        history = self.model.fit(
+        # Train LSTM model
+        print("Training LSTM model...")
+        self.lstm_model = self.build_lstm_model(len(self.mlb.classes_))
+        self.lstm_model.fit(
             [X_title_train, X_content_train], y_train,
-            batch_size=batch_size,
-            epochs=epochs,
+            batch_size=batch_size, epochs=epochs,
             validation_data=([X_title_val, X_content_val], y_val),
-            callbacks=callbacks,
-            verbose=1
+            callbacks=callbacks, verbose=1
         )
         
-        return history
+        # Train CNN model
+        print("Training CNN model...")
+        self.cnn_model = self.build_cnn_model(len(self.mlb.classes_))
+        self.cnn_model.fit(
+            [X_title_train, X_content_train], y_train,
+            batch_size=batch_size, epochs=epochs,
+            validation_data=([X_title_val, X_content_val], y_val),
+            callbacks=callbacks, verbose=1
+        )
+        
+        # Train GRU model
+        print("Training GRU model...")
+        self.gru_model = self.build_gru_model(len(self.mlb.classes_))
+        self.gru_model.fit(
+            [X_title_train, X_content_train], y_train,
+            batch_size=batch_size, epochs=epochs,
+            validation_data=([X_title_val, X_content_val], y_val),
+            callbacks=callbacks, verbose=1
+        )
+        
+        # Train Random Forest model
+        print("Training Random Forest model...")
+        self.rf_model = MultiOutputClassifier(RandomForestClassifier(n_estimators=100, random_state=42))
+        self.rf_model.fit(X_tfidf_train.toarray(), y_train)
+        
+        print("Ensemble training completed!")
     
-    def predict(self, title, content, details=False, top_k=5, threshold=0.3):
-        """Predict tags with improved threshold-based filtering"""
-        if self.model is None or self.tokenizer is None or self.mlb is None:
-            raise ValueError("Model not trained yet!")
+    def predict_ensemble(self, title: str, content: str, details: bool = False, 
+                        top_k: int = 5, threshold: float = 0.25) -> Any:
+        """Predict using ensemble of models"""
+        if not all([self.lstm_model, self.cnn_model, self.gru_model, self.rf_model]):
+            raise ValueError("Ensemble not fully trained!")
         
-        # Enhance with emoji context before preprocessing
-        title_enhanced = self.enhance_text_with_emoji_context(title)
-        content_enhanced = self.enhance_text_with_emoji_context(content)
+        # Preprocess
+        title_processed = self.preprocess_text(title)
+        content_processed = self.preprocess_text(content)
         
-        # Preprocess text
-        title_processed = self.preprocess_text(title_enhanced)
-        content_processed = self.preprocess_text(content_enhanced)
-        
-        # Tokenize and pad separately
+        # Prepare neural network inputs
         title_sequence = self.tokenizer.texts_to_sequences([title_processed])
         content_sequence = self.tokenizer.texts_to_sequences([content_processed])
         
-        X_title = pad_sequences(title_sequence, maxlen=self.max_title_len, 
-                               padding='post', truncating='post')
-        X_content = pad_sequences(content_sequence, maxlen=self.max_content_len, 
-                                 padding='post', truncating='post')
+        X_title = pad_sequences(title_sequence, maxlen=self.max_title_len, padding='post')
+        X_content = pad_sequences(content_sequence, maxlen=self.max_content_len, padding='post')
         
-        # Predict
-        predictions = self.model.predict([X_title, X_content])[0]
+        # Prepare TF-IDF input
+        combined_text = f"{title_processed} {content_processed}"
+        X_tfidf = self.tfidf_vectorizer.transform([combined_text])
         
-        # Filter predictions by threshold and get top-k
+        # Get predictions from all models
+        lstm_pred = self.lstm_model.predict([X_title, X_content], verbose=0)[0]
+        cnn_pred  = self.cnn_model.predict([X_title, X_content], verbose=0)[0]
+        gru_pred  = self.gru_model.predict([X_title, X_content], verbose=0)[0]
+
+        rf_raw_preds = self.rf_model.predict_proba(X_tfidf.toarray())
+
+        rf_pred = []
+        for i, prob in enumerate(rf_raw_preds):
+            if prob[0].shape[0] < 2:
+                print(f"!!! RF label {i} was trained on only one class — forcing probability = 0.0")
+                rf_pred.append(0.0)
+            else:
+                rf_pred.append(prob[0][1])
+        rf_pred = np.array(rf_pred)
+
+        # print("lstm_pred:", type(lstm_pred), lstm_pred.shape, lstm_pred)
+        # print("cnn_pred :", type(cnn_pred), cnn_pred.shape, cnn_pred)
+        # print("gru_pred :", type(gru_pred), gru_pred.shape, gru_pred)
+        # print("rf_pred  :", type(rf_pred), rf_pred.shape, rf_pred)
+
+        
+        # Ensemble predictions with weights
+        # Neural networks get higher weight, RF provides diversity
+        ensemble_pred = (0.3 * lstm_pred + 0.25 * cnn_pred + 0.25 * gru_pred + 0.2 * rf_pred)
+        
+        # Apply config-based post-processing
+        ensemble_pred = self.apply_tag_constraints(ensemble_pred, title + " " + content)
+        
+        # Filter by threshold and get top-k
         tag_scores = []
-        for i, score in enumerate(predictions):
+        for i, score in enumerate(ensemble_pred):
             if score >= threshold:
                 tag_scores.append((self.mlb.classes_[i], score))
         
-        # Sort by score and get top-k
         tag_scores.sort(key=lambda x: x[1], reverse=True)
         top_tags = tag_scores[:top_k]
         
-        # If no tags above threshold, get top 3 anyway
+        # Fallback if no tags above threshold
         if not top_tags:
-            all_scores = list(zip(self.mlb.classes_, predictions))
+            all_scores = list(zip(self.mlb.classes_, ensemble_pred))
             all_scores.sort(key=lambda x: x[1], reverse=True)
             top_tags = all_scores[:3]
         
         if details:
-            # Return detailed information including emoji analysis
-            combined_text = f"{title_processed} {content_processed}"
-            original_emojis = self.extract_emojis(title + " " + content)
-            
-            result = {
+            return {
                 'tags': [{'tag': tag, 'score': float(score)} for tag, score in top_tags],
-                'keywords': self.extract_keywords(combined_text),
-                'confidence': float(np.mean([score for _, score in top_tags])) if top_tags else 0.0,
-                'threshold_used': threshold,
-                'emojis_found': original_emojis,
-                'emoji_context_added': len(original_emojis) > 0
+                'model_predictions': {
+                    'lstm': lstm_pred.tolist(),
+                    'cnn': cnn_pred.tolist(),
+                    'gru': gru_pred.tolist(),
+                    'random_forest': rf_pred.tolist()
+                },
+                'ensemble_score': float(np.mean([score for _, score in top_tags])),
+                'confidence': float(np.std([score for _, score in top_tags])),
+                'preprocessing_applied': True
             }
-            return result
         else:
-            # Return just the tag names
             return [tag for tag, _ in top_tags]
     
-    def save_model(self, filepath):
-        """Save the trained model and preprocessing objects"""
-        if self.model is None:
-            raise ValueError("No model to save!")
+    def apply_tag_constraints(self, predictions: np.ndarray, text: str) -> np.ndarray:
+        """Apply config-based constraints to predictions"""
+        if not self.available_tags:
+            return predictions
         
-        # Save model using modern Keras format
-        self.model.save(f"{filepath}_model.keras")
+        # Boost scores for tags that have strong word matches
+        text_lower = text.lower()
+        
+        for i, tag in enumerate(self.mlb.classes_):
+            if tag in self.available_tags:
+                # Check if there are strong word matches for this tag
+                boost_factor = 1.0
+                
+                # Check word mappings
+                for word, mapped_tag in self.word_to_tag_reverse.items():
+                    if mapped_tag == tag and word in text_lower:
+                        boost_factor = 1.3
+                        break
+                
+                # Check domain patterns
+                for domain, pattern in self.domain_patterns.items():
+                    if pattern.search(text_lower) and domain in tag.lower():
+                        boost_factor = 1.2
+                        break
+                
+                predictions[i] *= boost_factor
+            else:
+                # Penalize tags not in available_tags
+                predictions[i] *= 0.1
+        
+        return predictions
+    
+    def save_ensemble(self, filepath: str):
+        """Save the entire ensemble"""
+        if not all([self.lstm_model, self.cnn_model, self.gru_model, self.rf_model]):
+            raise ValueError("Ensemble not fully trained!")
+        
+        # Save neural network models
+        self.lstm_model.save(f"{filepath}_lstm.keras")
+        self.cnn_model.save(f"{filepath}_cnn.keras")
+        self.gru_model.save(f"{filepath}_gru.keras")
+        
+        # Save Random Forest model
+        with open(f"{filepath}_rf.pkl", 'wb') as f:
+            pickle.dump(self.rf_model, f)
         
         # Save preprocessing objects
         with open(f"{filepath}_tokenizer.pkl", 'wb') as f:
@@ -332,13 +595,18 @@ class BlogTaggingModel:
             'max_words': self.max_words,
             'max_title_len': self.max_title_len,
             'max_content_len': self.max_content_len,
-            'embedding_dim': self.embedding_dim
+            'embedding_dim': self.embedding_dim,
+            'available_tags': self.available_tags,
+            'config_path': self.config_path
         }
+        
         with open(f"{filepath}_config.json", 'w') as f:
-            json.dump(config, f)
+            json.dump(config, f, indent=2)
+        
+        print(f"Ensemble saved to {filepath}")
     
-    def load_model(self, filepath):
-        """Load a trained model and preprocessing objects"""
+    def load_ensemble(self, filepath: str):
+        """Load the entire ensemble"""
         # Load configuration
         with open(f"{filepath}_config.json", 'r') as f:
             config = json.load(f)
@@ -347,9 +615,20 @@ class BlogTaggingModel:
         self.max_title_len = config['max_title_len']
         self.max_content_len = config['max_content_len']
         self.embedding_dim = config['embedding_dim']
+        self.available_tags = config['available_tags']
+        self.config_path = config.get('config_path', 'blog_config.py')
         
-        # Load model using modern Keras format
-        self.model = tf.keras.models.load_model(f"{filepath}_model.keras")
+        # Reload config mappings
+        self.load_config()
+        self.build_preprocessing_maps()
+        
+        # Load models
+        self.lstm_model = tf.keras.models.load_model(f"{filepath}_lstm.keras")
+        self.cnn_model = tf.keras.models.load_model(f"{filepath}_cnn.keras")
+        self.gru_model = tf.keras.models.load_model(f"{filepath}_gru.keras")
+        
+        with open(f"{filepath}_rf.pkl", 'rb') as f:
+            self.rf_model = pickle.load(f)
         
         # Load preprocessing objects
         with open(f"{filepath}_tokenizer.pkl", 'rb') as f:
@@ -360,47 +639,93 @@ class BlogTaggingModel:
         
         with open(f"{filepath}_tfidf.pkl", 'rb') as f:
             self.tfidf_vectorizer = pickle.load(f)
+        
+        print(f"Ensemble loaded from {filepath}")
 
-# Example usage
-# if __name__ == "__main__":
-#     from training_data import training_data
+    # Sample training data
+    sample_titles = [
+        "Getting Started with Python Machine Learning",
+        "Best Travel Destinations in Europe 2024",
+        "Healthy Meal Prep Ideas for Busy Professionals",
+        "Building RESTful APIs with FastAPI",
+        "Exploring the Wonders of Japanese Cuisine",
+        "Mental Health and Workplace Wellness",
+        "Investment Strategies for Beginners",
+        "The Future of Artificial Intelligence"
+    ]
     
-#     # Extract data
-#     titles = [item['title'] for item in training_data]
-#     contents = [item['content'] for item in training_data]
-#     tags_list = [item['tags'] for item in training_data]
+    sample_contents = [
+        "Learn the fundamentals of machine learning with Python. We'll cover scikit-learn, pandas, and neural networks using TensorFlow. Perfect for beginners who want to dive into AI and data science.",
+        "Discover amazing European destinations perfect for your next vacation. From Paris to Barcelona, explore culture, history, and beautiful landscapes. Tips for budget travel and local experiences.",
+        "Quick and nutritious meal prep recipes that save time during busy workdays. Focus on balanced nutrition with proteins, vegetables, and healthy fats. Great for fitness enthusiasts.",
+        "Complete guide to building modern web APIs using FastAPI framework. Learn about authentication, database integration, and deployment. Perfect for backend developers.",
+        "Dive into the rich world of Japanese food culture. From sushi to ramen, discover traditional recipes and modern fusion techniques. Explore regional specialties and cooking methods.",
+        "Understanding mental health challenges in modern workplaces. Strategies for stress management, work-life balance, and creating supportive environments. Essential for HR professionals.",
+        "Smart investment approaches for new investors. Learn about stocks, bonds, ETFs, and portfolio diversification. Risk management and long-term wealth building strategies.",
+        "Exploring the latest developments in AI technology. Machine learning, deep learning, and their applications across industries. Impact on jobs, society, and the future of work."
+    ]
     
-#     # Create and train model
-#     model = BlogTaggingModel()
+    sample_tags = [
+        ["Programming Languages", "Machine Learning", "Technology", "Education"],
+        ["Travel", "Europe", "Tourism", "Culture"],
+        ["Health", "Nutrition", "Fitness", "Lifestyle"],
+        ["Programming Languages", "Web Development", "Technology", "Backend"],
+        ["Food", "Culture", "Asia", "Cooking"],
+        ["Health", "Mental Health", "Career", "Workplace"],
+        ["Finance", "Investment", "Career", "Money"],
+        ["Technology", "Artificial Intelligence", "Future", "Innovation"]
+    ]
     
-#     # Train model
-#     print("Training model...")
-#     history = model.train(titles, contents, tags_list, epochs=10)
+    print("Creating Blog Tagging Model...")
+    model = BlogTaggingModel()
     
-#     # Save model
-#     model.save_model("blog_tagging_model")
+    print("\nTraining ensemble...")
+    model.train_ensemble(sample_titles, sample_contents, sample_tags, epochs=5)
     
-#     # Test prediction
-#     test_title = "Introduction to Neural Networks and Deep Learning"
-#     test_content = "Neural networks are computing systems inspired by biological neural networks. They consist of interconnected nodes that process information using deep learning techniques."
+    print("\nTesting predictions...")
     
-#     # Simple prediction
-#     predicted_tags = model.predict(test_title, test_content)
-#     print(f"Predicted tags: {predicted_tags}")
+    # Test cases
+    test_cases = [
+        {
+            "title": "Deep Learning with PyTorch for Computer Vision",
+            "content": "Learn how to build convolutional neural networks using PyTorch. We'll cover image classification, object detection, and transfer learning techniques. Perfect for AI researchers and developers."
+        },
+        {
+            "title": "Backpacking Through Southeast Asia: A Complete Guide",
+            "content": "Everything you need to know about backpacking in Thailand, Vietnam, and Cambodia. Budget tips, safety advice, and cultural insights for solo travelers and adventurers."
+        },
+        {
+            "title": "Vegan Protein Sources for Athletes",
+            "content": "Discover plant-based protein options that support athletic performance. From legumes to quinoa, learn how to meet your nutritional needs while following a vegan diet."
+        }
+    ]
     
-#     # Detailed prediction
-#     detailed_result = model.predict(test_title, test_content, details=True)
-#     print(f"Detailed result: {detailed_result}")
-
-
-# if __name__ == "__main__":
-#     test_input = "This is a test! 😄🚀 Visit https://example.com <b>bold</b> and enjoy 🎉 #ML #AI 👍"
-
-#     model = BlogTaggingModel()
-#     preprocessed = model.enhance_text_with_emoji_context(test_input)
-#     preprocessed = model.preprocess_text(preprocessed)
-
-#     print("Original:")
-#     print(test_input)
-#     print("\nPreprocessed:")
-#     print(preprocessed)
+    for i, test_case in enumerate(test_cases, 1):
+        print(f"\n\nTest {i}: {test_case['title']}")
+        
+        # Simple prediction
+        simple_tags = model.predict_ensemble(test_case['title'], test_case['content'])
+        print(f"Predicted tags: {simple_tags}")
+        
+        # Detailed prediction
+        detailed_result = model.predict_ensemble(test_case['title'], test_case['content'], details=True)
+        print(f"Detailed result:")
+        print(f"  Tags with scores: {detailed_result['tags']}")
+        print(f"  Ensemble confidence: {detailed_result['ensemble_score']:.3f}")
+        print(f"  Score variance: {detailed_result['confidence']:.3f}\n")
+    
+    # Save the trained ensemble
+    print("\nSaving ensemble...")
+    model.save_ensemble("blog_ensemble")
+    
+    # Demonstrate loading
+    print("\nTesting model loading...")
+    new_model = BlogTaggingModel()
+    new_model.load_ensemble("blog_ensemble")
+    
+    # Test loaded model
+    test_title = "Machine Learning Operations (MLOps) Best Practices"
+    test_content = "Learn about deploying and managing ML models in production. CI/CD pipelines, monitoring, and version control for machine learning projects."
+    
+    loaded_prediction = new_model.predict_ensemble(test_title, test_content)
+    print(f"Loaded model prediction: {loaded_prediction}")

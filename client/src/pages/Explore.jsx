@@ -62,13 +62,10 @@ const Explore = () => {
   useEffect(() => {
     const fetchAvailableTags = async () => {
       try {
-        const response = await axios.post(`${import.meta.env.VITE_GET_TAGS}`, {
-          data: {},
-        });
-        const result = response.data.result;
-        if (result.success) {
-          setAvailableTags(result.tags);
-          setFilteredTags(result.tags);
+        const response = await axios.get(`${API}/params/tags`);
+        if (response.data.status === "success") {
+          setAvailableTags(response.data.tags);
+          setFilteredTags(response.data.tags);
         }
       } catch (error) {
         console.error("Explore Page :: Error fetching available tags ::\n", error);
@@ -77,6 +74,26 @@ const Explore = () => {
 
     fetchAvailableTags();
   }, []);
+
+  // Old method (Saved for reference)
+  // useEffect(() => {
+  //   const fetchAvailableTags = async () => {
+  //     try {
+  //       const response = await axios.post(`${import.meta.env.VITE_GET_TAGS}`, {
+  //         data: {},
+  //       });
+  //       const result = response.data.result;
+  //       if (result.success) {
+  //         setAvailableTags(result.tags);
+  //         setFilteredTags(result.tags);
+  //       }
+  //     } catch (error) {
+  //       console.error("Explore Page :: Error fetching available tags ::\n", error);
+  //     }
+  //   };
+
+  //   fetchAvailableTags();
+  // }, []);
 
   // close drop down on click outside
   useEffect(() => {

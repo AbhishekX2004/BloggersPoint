@@ -310,4 +310,29 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Get all blogs (training data)
+router.get("/train-data", async (req, res) => {
+  try {
+    const blogsSnapshot = await db.collection("blogs").get();
+    const trainData = [];
+
+    blogsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      const {title, content, tags} = data;
+
+      trainData.push({
+        title: title || "",
+        content: content || "",
+        tags: Array.isArray(tags) ? tags : [],
+      });
+    });
+
+    return res.status(200).json(trainData);
+  } catch (error) {
+    console.error("Error fetching training data:", error);
+    return res.status(500).json({error: "Internal server error"});
+  }
+});
+
+
 module.exports = router;

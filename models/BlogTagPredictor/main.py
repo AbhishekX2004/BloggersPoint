@@ -21,7 +21,8 @@ class BlogContent(BaseModel):
     title: str
     content: str
     details: Optional[bool] = False
-    threshold: Optional[float] = 0.3
+    threshold: Optional[float] = 0.25  # Updated default threshold for ensemble
+    top_k: Optional[int] = 5  # New parameter for top-k results
 
 class TagPrediction(BaseModel):
     tag: str
@@ -29,15 +30,16 @@ class TagPrediction(BaseModel):
 
 class DetailedResponse(BaseModel):
     tags: List[TagPrediction]
-    keywords: List[str]
+    model_predictions: Dict[str, List[float]]
+    ensemble_score: float
     confidence: float
-    threshold_used: float
+    preprocessing_applied: bool
 
 class SimpleResponse(BaseModel):
     topics: List[str]
 
-def train_new_model():
-    """Train a new model using data from training_data.py"""
+def train_new_ensemble():
+    """Train a new ensemble model using data from training_data.py"""
     global model
     
     if not training_data:
@@ -48,40 +50,57 @@ def train_new_model():
     contents = [item['content'] for item in training_data]
     tags_list = [item['tags'] for item in training_data]
     
-    logger.info(f"Training with {len(training_data)} samples...")
-    logger.info(f"Sample titles: {titles[:3]}")
+    logger.info(f"Training ensemble with {len(training_data)} samples...")
     
-    # Train model with more epochs for better accuracy
-    model.train(titles, contents, tags_list, epochs=25)
+    # Train ensemble model with optimized parameters
+    model.train_ensemble(
+        titles=titles, 
+        contents=contents, 
+        tags_list=tags_list,
+        validation_split=0.2,
+        epochs=20,  # Increased for better convergence
+        batch_size=32
+    )
     
-    # Save model
-    model.save_model("blog_tagging_model")
-    logger.info("New model trained and saved!")
+    # Save ensemble model
+    model.save_ensemble("blog_tagging_ensemble")
+    logger.info("New ensemble model trained and saved!")
 
 async def load_model():
-    """Load or train the model"""
+    """Load or train the ensemble model"""
     global model
     model = BlogTaggingModel()
     
-    # Try to load existing model
-    model_path = "blog_tagging_model"
-    if os.path.exists(f"{model_path}_model.keras"):
-        try:
-            model.load_model(model_path)
-            logger.info("Model loaded successfully!")
-        except Exception as e:
-            logger.error(f"Error loading model: {e}")
-            logger.info("Training new model with data from training_data.py...")
-            train_new_model()
-    else:
-        logger.info("No existing model found. Training new model...")
-        train_new_model()
+    # Try to load existing ensemble model
+    model_path = "blog_tagging_ensemble"
+    try:
+        # Check if all ensemble components exist
+        ensemble_files = [
+            f"{model_path}_lstm.keras",
+            f"{model_path}_cnn.keras", 
+            f"{model_path}_gru.keras",
+            f"{model_path}_rf.pkl",
+            f"{model_path}_config.json"
+        ]
+        
+        if all(os.path.exists(f) for f in ensemble_files):
+            model.load_ensemble(model_path)
+            logger.info("Ensemble model loaded successfully!")
+            logger.info(f"Available tags: {len(model.mlb.classes_)}")
+        else:
+            logger.info("Ensemble model files not found. Training new ensemble...")
+            train_new_ensemble()
+            
+    except Exception as e:
+        logger.error(f"Error loading ensemble model: {e}")
+        logger.info("Training new ensemble model with data from training_data.py...")
+        train_new_ensemble()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan"""
     # Startup
-    logger.info("Starting up Blog Content Tagging API...")
+    logger.info("Starting up Blog Content Tagging API v2.0 (Ensemble)...")
     await load_model()
     yield
     # Shutdown
@@ -89,12 +108,13 @@ async def lifespan(app: FastAPI):
 
 # Initialize FastAPI with lifespan
 app = FastAPI(
-    title="Blog Content Tagging API", 
-    version="2.0.0",
+    title="Blog Content Tagging API - Ensemble Edition", 
+    version="2.1.0",
+    description="Advanced ensemble model for blog content tagging with LSTM, CNN, GRU, and Random Forest",
     lifespan=lifespan
 )
 
-# Add CORS middleware - more restrictive for production
+# Add CORS middleware - production-ready configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if os.getenv("ENVIRONMENT") == "development" else [
@@ -111,121 +131,282 @@ app.add_middleware(
 async def root():
     """Health check endpoint"""
     return {
-        "message": "Blog Content Tagging API v2.0 is running!",
+        "message": "Blog Content Tagging API v2.1 (Ensemble) is running!",
         "status": "healthy",
+        "model_type": "ensemble",
+        "components": ["LSTM", "CNN", "GRU", "Random Forest"],
         "environment": os.getenv("ENVIRONMENT", "production")
     }
 
 @app.post("/predict", response_model=Dict[str, Any])
 async def predict_tags(blog_content: BlogContent):
     """
-    Predict tags for blog content with improved model
+    Predict tags for blog content using ensemble model
     
-    - **title**: Blog post title (20-30 words recommended)
-    - **content**: Blog post content (max 600 words)
-    - **details**: Boolean flag for detailed response (default: False)
-    - **threshold**: Minimum confidence threshold for tags (default: 0.3)
+    - **title**: Blog post title (recommended 5-50 words)
+    - **content**: Blog post content (recommended 50-500 words)
+    - **details**: Boolean flag for detailed response with model breakdown (default: False)
+    - **threshold**: Minimum confidence threshold for tags (default: 0.25)
+    - **top_k**: Maximum number of tags to return (default: 5)
     
-    Returns array of predicted topics/tags sorted by relevance
+    Returns array of predicted topics/tags sorted by relevance score
     """
     if model is None:
-        raise HTTPException(status_code=500, detail="Model not initialized")
+        raise HTTPException(status_code=500, detail="Ensemble model not initialized")
     
     try:
-        # Validate input lengths
-        if len(blog_content.title.split()) > 50:
-            raise HTTPException(status_code=400, detail="Title too long (max 50 words)")
+        # Validate input lengths - updated for ensemble model
+        title_words = len(blog_content.title.split())
+        content_words = len(blog_content.content.split())
         
-        if len(blog_content.content.split()) > 800:
-            raise HTTPException(status_code=400, detail="Content too long (max 800 words)")
+        if title_words > 60:  # Updated limit for ensemble
+            raise HTTPException(status_code=400, detail="Title too long (max 60 words)")
+        
+        if content_words > 600:  # Updated limit for ensemble
+            raise HTTPException(status_code=400, detail="Content too long (max 600 words)")
+        
+        if title_words < 2:
+            raise HTTPException(status_code=400, detail="Title too short (min 2 words)")
+        
+        if content_words < 10:
+            raise HTTPException(status_code=400, detail="Content too short (min 10 words)")
         
         # Validate threshold
         if blog_content.threshold < 0.1 or blog_content.threshold > 0.9:
             raise HTTPException(status_code=400, detail="Threshold must be between 0.1 and 0.9")
         
-        # Get prediction
-        result = model.predict(
-            blog_content.title, 
-            blog_content.content, 
+        # Validate top_k
+        if blog_content.top_k < 1 or blog_content.top_k > 20:
+            raise HTTPException(status_code=400, detail="top_k must be between 1 and 20")
+        
+        # Get prediction from ensemble
+        result = model.predict_ensemble(
+            title=blog_content.title, 
+            content=blog_content.content, 
             details=blog_content.details,
-            threshold=blog_content.threshold
+            threshold=blog_content.threshold,
+            top_k=blog_content.top_k
         )
         
         if blog_content.details:
             return {
                 "topics": [tag_info["tag"] for tag_info in result["tags"]],
-                "details": result
+                "details": result,
+                "model_type": "ensemble",
+                "threshold_used": blog_content.threshold,
+                "top_k_used": blog_content.top_k
             }
         else:
-            return {"topics": result}
+            return {
+                "topics": result,
+                "model_type": "ensemble",
+                "threshold_used": blog_content.threshold,
+                "top_k_used": blog_content.top_k
+            }
             
     except Exception as e:
-        logger.error(f"Prediction failed: {str(e)}")
+        logger.error(f"Ensemble prediction failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
+    """Comprehensive health check endpoint"""
+    model_health = {
+        "model_loaded": model is not None,
+        "model_type": "ensemble",
+        "ensemble_components": {
+            "lstm_model": hasattr(model, 'lstm_model') and model.lstm_model is not None,
+            "cnn_model": hasattr(model, 'cnn_model') and model.cnn_model is not None,
+            "gru_model": hasattr(model, 'gru_model') and model.gru_model is not None,
+            "rf_model": hasattr(model, 'rf_model') and model.rf_model is not None
+        } if model else {},
+        "preprocessing_components": {
+            "tokenizer": hasattr(model, 'tokenizer') and model.tokenizer is not None,
+            "mlb": hasattr(model, 'mlb') and model.mlb is not None,
+            "tfidf_vectorizer": hasattr(model, 'tfidf_vectorizer') and model.tfidf_vectorizer is not None
+        } if model else {}
+    }
+    
     return {
         "status": "healthy",
-        "model_loaded": model is not None,
-        "available_tags": len(model.mlb.classes_) if model and model.mlb else 0,
+        "available_tags": len(model.available_tags if hasattr(model, 'available_tags') else []) if model and model.mlb else 0,
         "training_data_count": len(training_data),
-        "environment": os.getenv("ENVIRONMENT", "production")
+        "environment": os.getenv("ENVIRONMENT", "production"),
+        "model_health": model_health,
+        "config_loaded": hasattr(model, 'available_tags') and len(model.available_tags) > 0 if model else False
     }
 
 @app.get("/tags")
 async def get_available_tags():
-    """Get all available tags that the model can predict"""
+    """Get all available tags that the ensemble model can predict"""
     if model is None or model.mlb is None:
-        raise HTTPException(status_code=500, detail="Model not initialized")
+        raise HTTPException(status_code=500, detail="Ensemble model not initialized")
     
     return {
         "available_tags": model.mlb.classes_.tolist(),
-        "total_tags": len(model.mlb.classes_)
+        "total_tags": len(model.mlb.classes_),
+        "model_type": "ensemble",
+        "all_tags": model.available_tags if hasattr(model, 'available_tags') else [],
+        "preprocessing_mappings": len(model.word_to_tag_mappings) if hasattr(model, 'word_to_tag_mappings') else 0
     }
 
 @app.post("/retrain")
-async def retrain_model():
-    """Retrain the model with data from training_data.py"""
+async def retrain_ensemble():
+    """Retrain the ensemble model with data from training_data.py"""
     try:
-        train_new_model()
-        return {"message": "Model retrained successfully!"}
+        logger.info("Starting ensemble retraining...")
+        train_new_ensemble()
+        return {
+            "message": "Ensemble model retrained successfully!",
+            "model_type": "ensemble",
+            "components_trained": ["LSTM", "CNN", "GRU", "Random Forest"],
+            "total_tags": len(model.mlb.classes_) if model and model.mlb else 0
+        }
     except Exception as e:
-        logger.error(f"Retraining failed: {str(e)}")
+        logger.error(f"Ensemble retraining failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Retraining failed: {str(e)}")
 
 @app.get("/training-info")
 async def get_training_info():
-    """Get information about the training data"""
+    """Get comprehensive information about the training data"""
     if not training_data:
         return {"message": "No training data found"}
     
     # Analyze training data
     all_tags = set()
+    tag_counts = {}
+    
     for item in training_data:
         all_tags.update(item['tags'])
+        for tag in item['tags']:
+            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+    
+    # Get most common tags
+    sorted_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)
     
     return {
         "total_samples": len(training_data),
         "unique_tags": len(all_tags),
-        "sample_tags": list(all_tags)[:20],  # Show first 20 tags
-        "avg_tags_per_sample": sum(len(item['tags']) for item in training_data) / len(training_data)
+        "most_common_tags": sorted_tags[:20],  # Top 20 most common tags
+        "avg_tags_per_sample": round(sum(len(item['tags']) for item in training_data) / len(training_data), 2),
+        "avg_title_length": round(sum(len(item['title'].split()) for item in training_data) / len(training_data), 2),
+        "avg_content_length": round(sum(len(item['content'].split()) for item in training_data) / len(training_data), 2),
+        "model_type": "ensemble"
+    }
+
+@app.get("/model-info")
+async def get_model_info():
+    """Get detailed information about the ensemble model"""
+    if model is None:
+        raise HTTPException(status_code=500, detail="Ensemble model not initialized")
+    
+    return {
+        "model_type": "ensemble",
+        "components": {
+            "lstm": "Bidirectional LSTM with Multi-Head Attention",
+            "cnn": "Multi-kernel CNN with Global Max Pooling",
+            "gru": "Bidirectional GRU",
+            "random_forest": "Multi-Output Random Forest"
+        },
+        "ensemble_weights": {
+            "lstm": 0.3,
+            "cnn": 0.25,
+            "gru": 0.25,
+            "random_forest": 0.2
+        },
+        "preprocessing_features": [
+            "Config-based word-to-tag mappings",
+            "Domain-specific pattern recognition",
+            "Emoji sentiment analysis",
+            "Advanced text cleaning and normalization",
+            "TF-IDF vectorization for Random Forest"
+        ],
+        "model_parameters": {
+            "max_words": model.max_words,
+            "max_title_len": model.max_title_len,
+            "max_content_len": model.max_content_len,
+            "embedding_dim": model.embedding_dim
+        } if hasattr(model, 'max_words') else {},
+        "total_parameters": "~500K+ parameters across all models"
     }
 
 @app.get("/status")
 async def get_status():
-    """Get detailed status information"""
+    """Get comprehensive status information"""
     return {
-        "api_version": "2.0.0",
+        "api_version": "2.1.0",
         "model_status": "loaded" if model else "not_loaded",
+        "model_type": "ensemble",
         "training_data_available": bool(training_data),
         "environment": os.getenv("ENVIRONMENT", "production"),
         "python_version": sys.version,
         "available_endpoints": [
-            "/", "/predict", "/health", "/tags", "/retrain", "/training-info", "/status"
-        ]
+            "/", "/predict", "/health", "/tags", "/retrain", 
+            "/training-info", "/model-info", "/status"
+        ],
+        "ensemble_status": {
+            "lstm_ready": hasattr(model, 'lstm_model') and model.lstm_model is not None,
+            "cnn_ready": hasattr(model, 'cnn_model') and model.cnn_model is not None,
+            "gru_ready": hasattr(model, 'gru_model') and model.gru_model is not None,
+            "rf_ready": hasattr(model, 'rf_model') and model.rf_model is not None
+        } if model else {}
     }
+
+@app.post("/predict/batch")
+async def predict_batch_tags(blog_contents: List[BlogContent]):
+    """
+    Predict tags for multiple blog contents in batch
+    
+    - **blog_contents**: List of blog content objects
+    
+    Returns array of predictions for each input
+    """
+    if model is None:
+        raise HTTPException(status_code=500, detail="Ensemble model not initialized")
+    
+    if len(blog_contents) > 50:  # Limit batch size
+        raise HTTPException(status_code=400, detail="Batch size too large (max 50 items)")
+    
+    try:
+        results = []
+        for i, blog_content in enumerate(blog_contents):
+            try:
+                result = model.predict_ensemble(
+                    title=blog_content.title, 
+                    content=blog_content.content, 
+                    details=blog_content.details,
+                    threshold=blog_content.threshold,
+                    top_k=blog_content.top_k
+                )
+                
+                if blog_content.details:
+                    results.append({
+                        "index": i,
+                        "topics": [tag_info["tag"] for tag_info in result["tags"]],
+                        "details": result
+                    })
+                else:
+                    results.append({
+                        "index": i,
+                        "topics": result
+                    })
+                    
+            except Exception as e:
+                results.append({
+                    "index": i,
+                    "error": str(e),
+                    "topics": []
+                })
+        
+        return {
+            "results": results,
+            "batch_size": len(blog_contents),
+            "successful_predictions": len([r for r in results if "error" not in r])
+        }
+        
+    except Exception as e:
+        logger.error(f"Batch prediction failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Batch prediction failed: {str(e)}")
 
 # Error handlers
 @app.exception_handler(404)
@@ -249,7 +430,7 @@ if __name__ == "__main__":
             "main:app",
             host=host,
             port=port,
-            workers=1,
+            workers=1, 
             log_level="info",
             access_log=True
         )
