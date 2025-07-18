@@ -21,8 +21,8 @@ class BlogContent(BaseModel):
     title: str
     content: str
     details: Optional[bool] = False
-    threshold: Optional[float] = 0.25  # Updated default threshold for ensemble
-    top_k: Optional[int] = 5  # New parameter for top-k results
+    threshold: Optional[float] = 0.25 
+    top_k: Optional[int] = 5 
 
 class TagPrediction(BaseModel):
     tag: str
@@ -58,7 +58,7 @@ def train_new_ensemble():
         contents=contents, 
         tags_list=tags_list,
         validation_split=0.2,
-        epochs=20,  # Increased for better convergence
+        epochs=30,
         batch_size=32
     )
     
@@ -115,13 +115,11 @@ app = FastAPI(
 )
 
 # Add CORS middleware - production-ready configuration
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://127.0.0.1:5001")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if os.getenv("ENVIRONMENT") == "development" else [
-        "https://your-domain.com",
-        "https://your-firebase-domain.web.app",
-        "https://your-firebase-domain.firebaseapp.com"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -430,7 +428,7 @@ if __name__ == "__main__":
             "main:app",
             host=host,
             port=port,
-            workers=1, 
+            workers=1,
             log_level="info",
             access_log=True
         )

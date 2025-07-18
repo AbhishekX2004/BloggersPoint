@@ -2,10 +2,10 @@
 
 # Available tags for the model
 AVAILABLE_TAGS = [
-    "API", "Anime And Manga", "Artificial Intelligence", "Augmented Reality Virtual Reality",
+    "API", "Anime and Manga", "Artificial Intelligence", "Augmented Reality Virtual Reality",
     "Backend", "Blockchain", "Career", "Cloud Computing", "Continents", "Countries",
     "CSS", "Cryptocurrency", "Cuisine", "Culture", "Daily Life", "Database",
-    "DevOps", "Education and Learning", "Environment and Sustainability", "Food And Cooking",
+    "DevOps", "Education and Learning", "Environment and Sustainability", "Food and Cooking",
     "Framework", "Frontend", "Fruits", "Gaming", "Health and Fitness", "History",
     "Hobbies and Crafts", "Inspiration", "JavaScript", "Mental Health", "Mobile",
     "Motivation", "Movies and Entertainment", "Music", "News", "Parenting",

@@ -5,6 +5,7 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn.model_selection import train_test_split
+from skmultilearn.model_selection import IterativeStratification
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.multioutput import MultiOutputClassifier
@@ -401,14 +402,30 @@ class BlogTaggingModel:
         print(f"Labels shape: {y.shape}")
         print(f"Number of unique tags: {len(self.mlb.classes_)}")
         
-        # Split data
-        X_title_train, X_title_val, X_content_train, X_content_val, y_train, y_val = train_test_split(
-            X_neural[0], X_neural[1], y, test_size=validation_split, random_state=42
-        )
-        
-        X_tfidf_train, X_tfidf_val, _, _ = train_test_split(
-            X_tfidf, y, test_size=validation_split, random_state=42
-        )
+        # Split data using IterativeStratification
+        splitter = IterativeStratification(n_splits=2, order=1, sample_distribution_per_fold=[validation_split, 1.0 - validation_split])
+        train_indices, val_indices = next(splitter.split(X_neural[0], y))
+
+        X_title_train, X_title_val = X_neural[0][train_indices], X_neural[0][val_indices]
+        X_content_train, X_content_val = X_neural[1][train_indices], X_neural[1][val_indices]
+        y_train, y_val = y[train_indices], y[val_indices]
+
+        X_tfidf_train, X_tfidf_val = X_tfidf[train_indices], X_tfidf[val_indices]
+
+        # Calculate class weights for imbalanced data
+        class_counts = np.sum(y_train, axis=0)
+        total_samples = y_train.shape[0]
+        class_weights = {}
+        for i, count in enumerate(class_counts):
+            if count > 0:
+                class_weights[i] = total_samples / (len(self.mlb.classes_) * count)
+            else:
+                class_weights[i] = 0.0 # Assign 0 weight if a class is not present in training data
+
+        # Ensure all classes have a weight, even if 0
+        for i in range(len(self.mlb.classes_)):
+            if i not in class_weights:
+                class_weights[i] = 0.0
         
         # Callbacks
         callbacks = [
@@ -423,7 +440,7 @@ class BlogTaggingModel:
             [X_title_train, X_content_train], y_train,
             batch_size=batch_size, epochs=epochs,
             validation_data=([X_title_val, X_content_val], y_val),
-            callbacks=callbacks, verbose=1
+            callbacks=callbacks, verbose=1, class_weight=class_weights
         )
         
         # Train CNN model
@@ -433,7 +450,7 @@ class BlogTaggingModel:
             [X_title_train, X_content_train], y_train,
             batch_size=batch_size, epochs=epochs,
             validation_data=([X_title_val, X_content_val], y_val),
-            callbacks=callbacks, verbose=1
+            callbacks=callbacks, verbose=1, class_weight=class_weights
         )
         
         # Train GRU model
@@ -443,7 +460,7 @@ class BlogTaggingModel:
             [X_title_train, X_content_train], y_train,
             batch_size=batch_size, epochs=epochs,
             validation_data=([X_title_val, X_content_val], y_val),
-            callbacks=callbacks, verbose=1
+            callbacks=callbacks, verbose=1, class_weight=class_weights
         )
         
         # Train Random Forest model
@@ -483,11 +500,13 @@ class BlogTaggingModel:
 
         rf_pred = []
         for i, prob in enumerate(rf_raw_preds):
-            if prob[0].shape[0] < 2:
-                print(f"!!! RF label {i} was trained on only one class — forcing probability = 0.0")
-                rf_pred.append(0.0)
+            # Check if the probability array has at least two elements (binary classification)
+            if prob.shape[0] > 1:
+                rf_pred.append(prob[1]) # Probability of the positive class
             else:
-                rf_pred.append(prob[0][1])
+                # If only one class was seen during training, assign a default low probability
+                # This handles cases where a tag was always absent or always present in RF training data
+                rf_pred.append(0.01) # Assign a small non-zero probability instead of 0.0
         rf_pred = np.array(rf_pred)
 
         # print("lstm_pred:", type(lstm_pred), lstm_pred.shape, lstm_pred)
@@ -498,7 +517,7 @@ class BlogTaggingModel:
         
         # Ensemble predictions with weights
         # Neural networks get higher weight, RF provides diversity
-        ensemble_pred = (0.3 * lstm_pred + 0.25 * cnn_pred + 0.25 * gru_pred + 0.2 * rf_pred)
+        ensemble_pred = (0.3 * lstm_pred + 0.3 * cnn_pred + 0.3 * gru_pred + 0.2 * rf_pred)
         
         # Apply config-based post-processing
         ensemble_pred = self.apply_tag_constraints(ensemble_pred, title + " " + content)
