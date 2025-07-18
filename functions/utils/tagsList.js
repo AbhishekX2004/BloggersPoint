@@ -308,7 +308,7 @@ const tagKeywords = {
     "unity", "unreal engine", "arkit", "arcore", "webxr", "aframe",
     "three.js", "babylon.js", "8th wall", "spark ar", "lens studio",
   ],
-  "Health And Fitness": [
+  "Health and Fitness": [
     "health", "fitness", "wellness", "wellbeing", "exercise", "workout",
     "training", "physical activity", "cardio", "cardiovascular", "strength training",
     "resistance training", "weight lifting", "bodyweight", "calisthenics",
@@ -329,7 +329,7 @@ const tagKeywords = {
     "rehabilitation", "injury prevention", "first aid", "healthcare",
     "medical", "doctor", "physician", "nurse", "hospital", "clinic",
   ],
-  "Food And Cooking": [
+  "Food and Cooking": [
     "food", "cooking", "culinary", "cuisine", "recipe", "ingredient",
     "meal", "dish", "course", "appetizer", "starter", "main course",
     "entree", "dessert", "side dish", "snack", "breakfast", "lunch",
@@ -353,7 +353,7 @@ const tagKeywords = {
     "dairy free", "keto", "paleo", "mediterranean", "asian", "italian",
     "mexican", "indian", "chinese", "japanese", "thai", "french",
   ],
-  "Education And Learning": [
+  "Education and Learning": [
     "education", "learning", "teaching", "instruction", "pedagogy",
     "curriculum", "syllabus", "course", "class", "lesson", "lecture",
     "seminar", "workshop", "tutorial", "study", "research", "homework",
@@ -404,7 +404,7 @@ const tagKeywords = {
     "loose coupling", "high cohesion", "code quality", "technical debt",
     "refactoring", "code review", "architectural review", "documentation",
   ],
-  "Environment And Sustainability": [
+  "Environment and Sustainability": [
     "environment", "environmental", "sustainability", "sustainable",
     "green", "eco", "ecological", "climate", "climate change",
     "global warming", "carbon footprint", "carbon neutral", "carbon negative",
@@ -485,7 +485,7 @@ const tagKeywords = {
     "nori", "kelp", "wakame", "dulse", "sea lettuce", "sprouts",
     "bean sprouts", "alfalfa sprouts", "broccoli sprouts", "microgreens",
   ],
-  "Hobbies And Crafts": [
+  "Hobbies and Crafts": [
     "hobbies", "hobby", "pastime", "leisure", "recreation", "crafts",
     "crafting", "handicraft", "handmade", "diy", "do it yourself",
     "maker", "making", "creating", "creativity", "art", "fine art",
@@ -537,7 +537,7 @@ const tagKeywords = {
     "parchment", "vellum", "manuscript", "journaling", "diary",
     "creative writing", "poetry", "storytelling", "blogging",
   ],
-  "Anime And Manga": [
+  "Anime and Manga": [
     "anime", "manga", "japanese animation", "japanese comics", "otaku",
     "weeb", "weeaboo", "japan", "japanese culture", "anime series",
     "anime movie", "anime film", "ova", "original video animation",
@@ -620,7 +620,7 @@ const tagKeywords = {
     "gacha", "loot box", "random", "rng", "random number generator",
     "drop rate", "rare", "epic", "legendary", "common", "uncommon",
   ],
-  "Movies And Entertainment": [
+  "Movies and Entertainment": [
     "movies", "films", "cinema", "movie theater", "theatre", "screening",
     "premiere", "box office", "blockbuster", "indie film", "independent film",
     "art film", "documentary", "mockumentary", "biopic", "biographical",

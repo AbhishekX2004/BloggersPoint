@@ -21,19 +21,29 @@ const Interests = ({ onClose, uid }) => {
         // Fetch tags using the new endpoint
         const fetchAvailableTags = async () => {
           try {
-            const response = await axios.post(`${import.meta.env.VITE_GET_TAGS}`, {
-              data: {},
-            });
-            const result = response.data.result;
-            if (result.success) {
-              return result.tags;
+            const response = await axios.get(`${API}/params/tags`);
+            if (response.data.status === "success") {
+              return response.data.tags;
             }
-            throw new Error('Failed to fetch tags');
           } catch (error) {
-            console.error("Interests :: Error fetching available tags ::\n", error);
-            throw error;
+            console.error("Explore Page :: Error fetching available tags ::\n", error);
           }
         };
+        // const fetchAvailableTags = async () => {
+        //   try {
+        //     const response = await axios.post(`${import.meta.env.VITE_GET_TAGS}`, {
+        //       data: {},
+        //     });
+        //     const result = response.data.result;
+        //     if (result.success) {
+        //       return result.tags;
+        //     }
+        //     throw new Error('Failed to fetch tags');
+        //   } catch (error) {
+        //     console.error("Interests :: Error fetching available tags ::\n", error);
+        //     throw error;
+        //   }
+        // };
 
         // Fetch user interests
         const fetchUserInterests = async () => {
