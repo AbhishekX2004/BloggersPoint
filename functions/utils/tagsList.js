@@ -889,6 +889,129 @@ const tagKeywords = {
     "lourdes", "pilgrimage site", "marian shrine", "healing waters",
     "santiago de compostela", "camino", "pilgrimage route", "way of st james",
   ],
+  "Banking": [
+    "bank", "banking", "savings account", "checking account", "interest rate",
+    "fixed deposit", "recurring deposit", "loan", "home loan", "car loan",
+    "personal loan", "net banking", "mobile banking", "atm", "cheque",
+    "debit card", "credit card", "bank statement", "swift code", "ifsc code",
+  ],
+
+  "Career": [
+    "career", "job", "interview", "resume", "cv", "cover letter", "job search",
+    "linkedin", "networking", "freelance", "remote work", "promotion",
+    "internship", "job offer", "salary negotiation", "career growth",
+    "mentorship", "recruitment", "headhunter",
+  ],
+
+  "Daily Life": [
+    "routine", "morning routine", "chores", "daily tasks", "home", "commute",
+    "errands", "time management", "work life", "day to day", "lifestyle",
+  ],
+
+  "Economy": [
+    "economy", "gdp", "inflation", "deflation", "recession", "economic growth",
+    "unemployment", "macroeconomics", "microeconomics", "fiscal policy",
+    "monetary policy", "interest rate", "economic indicator",
+  ],
+
+  "Finance": [
+    "finance", "budget", "income", "expense", "savings", "debt", "investment",
+    "assets", "liabilities", "financial planning", "net worth", "emergency fund",
+    "credit score", "compound interest",
+  ],
+
+  "Financial Markets": [
+    "stock market", "share", "stock", "bond", "mutual fund", "index",
+    "sensex", "nifty", "nasdaq", "dow jones", "bull market", "bear market",
+    "ipo", "dividend", "portfolio", "broker", "trading", "investor",
+  ],
+
+  "Inspiration": [
+    "inspire", "inspiration", "role model", "vision", "goal", "achievement",
+    "dream", "greatness", "success story", "life lesson", "legacy", "ambition",
+  ],
+
+  "Investing": [
+    "investing", "investment", "stocks", "mutual funds", "real estate",
+    "etf", "bonds", "roth ira", "401k", "sip", "diversification", "risk",
+    "return", "capital gain", "long term", "short term", "investment strategy",
+  ],
+
+  "Mental Health": [
+    "mental health", "anxiety", "depression", "therapy", "counseling", "mindfulness",
+    "stress", "trauma", "meditation", "psychology", "wellbeing", "mental illness",
+    "burnout", "self care", "emotional health",
+  ],
+
+  "Motivation": [
+    "motivation", "motivated", "goal", "drive", "focus", "discipline", "willpower",
+    "grit", "self discipline", "ambition", "success", "inspiration", "overcome",
+  ],
+
+  "News": [
+    "news", "headline", "breaking news", "latest update", "news report",
+    "news article", "press", "media", "journalism", "current affairs", "trending",
+  ],
+
+  "Parenting": [
+    "parent", "parenting", "mother", "father", "mom", "dad", "childcare",
+    "discipline", "schooling", "baby", "toddler", "teenager", "child",
+    "parenthood", "raising kids", "family",
+  ],
+
+  "Personal Finance": [
+    "personal finance", "budget", "spending", "saving", "emergency fund",
+    "debt", "credit card", "loan", "finance goal", "financial independence",
+    "retirement planning", "monthly budget",
+  ],
+
+  "Philosophy": [
+    "philosophy", "stoicism", "existentialism", "nihilism", "ethics",
+    "morality", "truth", "reality", "logic", "socrates", "plato", "aristotle",
+    "mind", "being", "meaning of life",
+  ],
+
+  "Productivity": [
+    "productivity", "efficient", "focus", "pomodoro", "to-do list", "planner",
+    "time block", "task management", "habit", "routine", "goal setting",
+    "workflow", "procrastination",
+  ],
+
+  "Relationships": [
+    "relationship", "love", "romance", "dating", "breakup", "marriage",
+    "trust", "communication", "intimacy", "partner", "connection", "bond",
+    "friendship", "empathy",
+  ],
+
+  "Science": [
+    "science", "experiment", "biology", "physics", "chemistry", "astronomy",
+    "research", "scientific method", "theory", "hypothesis", "laboratory",
+    "discovery", "scientist",
+  ],
+
+  "Self Improvement": [
+    "self improvement", "self growth", "personal growth", "habit", "discipline",
+    "confidence", "resilience", "self awareness", "goal", "mindset", "reflection",
+  ],
+
+  "Spirituality": [
+    "spirituality", "soul", "energy", "meditation", "consciousness", "karma",
+    "awakening", "chakras", "healing", "yoga", "nirvana", "inner peace",
+    "faith", "divine",
+  ],
+
+  "Technology Trends": [
+    "tech trend", "ai", "ml", "blockchain", "iot", "5g", "metaverse",
+    "web3", "cloud computing", "automation", "robotics", "edge computing",
+    "digital transformation",
+  ],
+
+  "Travel": [
+    "travel", "trip", "vacation", "tourism", "flight", "hotel", "itinerary",
+    "explore", "passport", "visa", "backpacking", "destination", "tourist",
+    "adventure", "road trip",
+  ],
 };
+
 
 module.exports = tagKeywords;

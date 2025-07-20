@@ -94,7 +94,7 @@ class BlogTaggingModel:
             mapping_names = [
                 'PROGRAMMING_LANGUAGES', 'COUNTRIES', 'CONTINENTS', 'SEVEN_WONDERS',
                 'FRUITS', 'VEGETABLES', 'CUISINE', 'CULTURE', 'WILDLIFE',
-                'PLANETS_STARS', 'TECH_TERMS', 'CAREER', 'MOVIES_AND_ENTERTAINMENT'
+                'PLANETS_STARS', 'TECH_TERMS', 'CAREER', 'MOVIES_AND_ENTERTAINMENT', 'MONEY_TERMS',
             ]
             
             for mapping_name in mapping_names:
@@ -129,7 +129,8 @@ class BlogTaggingModel:
             'health': re.compile(r'\b(health|fitness|exercise|workout|gym|nutrition|diet|wellness|medical|doctor|hospital|medicine|treatment|therapy|mental health|stress|meditation|yoga|sleep|weight)\b', re.IGNORECASE),
             'business': re.compile(r'\b(business|entrepreneur|startup|company|marketing|sales|finance|investment|profit|revenue|strategy|management|leadership|team|productivity|innovation|growth|success)\b', re.IGNORECASE),
             'education': re.compile(r'\b(education|learning|school|university|course|study|student|teacher|professor|degree|certification|skill|knowledge|training|tutorial|academic|research|science)\b', re.IGNORECASE),
-            'entertainment': re.compile(r'\b(movie|film|music|game|gaming|book|reading|art|culture|entertainment|celebrity|actor|singer|musician|artist|concert|festival|show|series|tv|streaming)\b', re.IGNORECASE)
+            'entertainment': re.compile(r'\b(movie|film|music|game|gaming|book|reading|art|culture|entertainment|celebrity|actor|singer|musician|artist|concert|festival|show|series|tv|streaming)\b', re.IGNORECASE),
+            'finance': re.compile(r'\b(money|finance|financial|fintech|investment|investing|investor|stock|stocks|trading|portfolio|market|markets|economy|economic|bank|banking|loan|loans|budget|saving|savings|wealth|debt|tax|taxes|credit|ipo|fund|funds|etf|bonds|assets|liabilities|valuation)\b', re.IGNORECASE)
         }
     
     def preprocess_text(self, text: str) -> str:

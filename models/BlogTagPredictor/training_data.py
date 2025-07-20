@@ -1630,5 +1630,105 @@ training_data = [
         "title": "Mind-Body Connection: Holistic Approaches to Health",
         "content": "The mind-body connection recognizes the profound interplay between our mental, emotional, and spiritual states and our physical health. Holistic approaches to well-being, such as yoga, tai chi, meditation, and energy healing, aim to harmonize these aspects. By addressing the whole person, these practices can reduce stress, improve physical symptoms, and promote overall vitality, highlighting the interconnectedness of our inner and outer worlds.",
         "tags": ["Spirituality", "Self Improvement", "Mental Health"]
+    },
+    {
+        "title": "Mastering Your Finances: Building a Secure Future",
+        "content": "Finance is the foundation of a stable life. Learning to track expenses, build savings, and plan ahead can create long-term peace of mind and financial freedom. 💰📘",
+        "tags": ["Finance"]
+    },
+    {
+        "title": "Investing for Beginners: Where to Start",
+        "content": "New to investing? Start with index funds, learn about risk and return, and think long-term. Small consistent investments can lead to big rewards. 📈📉",
+        "tags": ["Investing", "Finance"]
+    },
+    {
+        "title": "How Banks Work: More Than Just Savings Accounts",
+        "content": "Banks do more than store money—they offer loans, credit facilities, investment advice, and financial planning. Understanding banking empowers better money management. 🏦💳",
+        "tags": ["Banking", "Finance"]
+    },
+    {
+        "title": "The Global Economy Explained Simply",
+        "content": "The global economy connects nations through trade, resources, and currency. A strong economy means jobs, growth, and innovation. 🌐📊",
+        "tags": ["Economy"]
+    },
+    {
+        "title": "What Moves Financial Markets?",
+        "content": "Markets react to news, earnings, inflation, and interest rates. Learning how financial markets work helps you invest wisely. 🧠💼",
+        "tags": ["Financial Markets", "Investing", "Economy"]
+    },
+    {
+        "title": "Compound Interest: Your Best Friend in Finance",
+        "content": "Compound interest helps your money grow exponentially. Start saving early and let time do the work. ⏳💸",
+        "tags": ["Finance", "Investing"]
+    },
+    {
+        "title": "Banking in the Digital Age",
+        "content": "From mobile apps to online transfers, digital banking has made financial access more inclusive and efficient. 📲🏦",
+        "tags": ["Banking", "Finance", "Technology"]
+    },
+    {
+        "title": "Diversification: Don't Put All Your Eggs in One Basket",
+        "content": "Spreading investments across sectors reduces risk. Diversification is a key principle of smart investing. 🥚📊",
+        "tags": ["Investing", "Financial Markets"]
+    },
+    {
+        "title": "Understanding Inflation and How It Affects You",
+        "content": "Inflation decreases your purchasing power. Learn how to hedge against it with smart investments and savings strategies. 📉🛒",
+        "tags": ["Economy", "Finance", "Investing"]
+    },
+    {
+        "title": "The Role of Central Banks in the Economy",
+        "content": "Central banks manage interest rates and money supply. Their decisions shape inflation, growth, and currency value. 🏛️💱",
+        "tags": ["Banking", "Economy", "Finance"]
+    },
+    {
+        "title": "Real Estate as an Investment Vehicle",
+        "content": "Real estate offers passive income and long-term appreciation. It’s a tangible asset that diversifies your portfolio. 🏠📈",
+        "tags": ["Investing", "Finance"]
+    },
+    {
+        "title": "Bull vs Bear Markets: What Do They Mean?",
+        "content": "Bull markets rise; bear markets fall. Both are part of economic cycles and offer unique opportunities. 🐂🐻",
+        "tags": ["Financial Markets", "Investing"]
+    },
+    {
+        "title": "Credit Scores: Why They Matter",
+        "content": "Your credit score affects your ability to borrow and the rates you get. Learn how to build and maintain it. 💳📊",
+        "tags": ["Banking", "Finance"]
+    },
+    {
+        "title": "The Power of Emergency Funds",
+        "content": "Having 3–6 months' expenses saved helps you navigate job loss, health issues, or unexpected bills. 🛡️💼",
+        "tags": ["Finance"]
+    },
+    {
+        "title": "ETFs vs Mutual Funds: What's the Difference?",
+        "content": "Both ETFs and mutual funds pool investments, but differ in fees, trading style, and flexibility. Know what suits your goals. ⚖️📘",
+        "tags": ["Investing", "Financial Markets"]
+    },
+    {
+        "title": "How Interest Rates Affect the Economy",
+        "content": "When interest rates rise, borrowing costs increase, slowing spending and inflation. Rates shape economic momentum. 📈💡",
+        "tags": ["Economy", "Banking", "Finance"]
+    },
+    {
+        "title": "Cryptocurrency and the Future of Financial Markets",
+        "content": "Crypto assets are transforming traditional finance, but carry high volatility. Stay informed before diving in. 🪙🌐",
+        "tags": ["Financial Markets", "Investing", "Finance"]
+    },
+    {
+        "title": "Understanding the Stock Market Indexes",
+        "content": "Indices like the S&P 500 or Nifty 50 give a snapshot of market performance and economic trends. 📊🏛️",
+        "tags": ["Financial Markets", "Economy"]
+    },
+    {
+        "title": "Personal Finance Tips for Young Professionals",
+        "content": "Budgeting, saving for retirement, and avoiding debt early sets a strong financial foundation. 💼📈",
+        "tags": ["Finance", "Investing"]
+    },
+    {
+        "title": "How to Open Your First Investment Account",
+        "content": "Choose the right brokerage, understand fees, and set clear goals. Getting started is easier than you think. 🚀📲",
+        "tags": ["Investing", "Finance"]
     }
 ]
