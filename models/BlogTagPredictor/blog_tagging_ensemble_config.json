@@ -62,7 +62,12 @@
     "Tutorial",
     "Vegetables",
     "Web Development",
-    "Wildlife"
+    "Wildlife",
+    "Finance",
+    "Investing",
+    "Banking",
+    "Economy",
+    "Financial Markets"
   ],
   "config_path": "blog_config.py"
 }
