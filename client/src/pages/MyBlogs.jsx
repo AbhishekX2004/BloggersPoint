@@ -163,7 +163,7 @@ const MyBlogs = () => {
                 }
             });
 
-            if (response.data.status === 'success') {
+            if (response.status === 200 || response.data.status === 'success') {
                 // Remove blog from state
                 setBlogs(prev => prev.filter(blog => blog.blogId !== blogId));
                 setDeleteConfirm(null);
@@ -172,8 +172,7 @@ const MyBlogs = () => {
             }
         } catch (err) {
             console.error('MyBlogs Page :: Error deleting blog ::\n', err);
-            error('Upload failed. Please try again.');
-            // You might want to show an error toast here
+            error('Delete blog failed. Please try later.');
         } finally {
             setDeleting(false);
         }

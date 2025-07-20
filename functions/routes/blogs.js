@@ -245,6 +245,7 @@ router.delete("/delete", async (req, res) => {
     await batch.commit();
 
     return res.status(200).json({
+      status: "success",
       message: "Blog deleted successfully.",
       blogId,
     });
