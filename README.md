@@ -14,11 +14,7 @@ BloggersPoint is an innovative online blogging platform that leverages various A
 - **Text-to-Image Generation**: Create stunning visuals from text descriptions using Black Forest FLUX.1-dev
 - **Content Enhancement**: AI-assisted grammar correction, tone optimization, and engagement improvement
 - **Writing Assistant**: Real-time suggestions to elevate your content quality
-
-### Automated Content Management
-- **Smart Tag Generation**: Keyword-based classification for efficient content categorization
-- **Auto-Organization**: Intelligent content structuring and categorization
-- **SEO Optimization**: Automated tag suggestions for better discoverability
+- **Smart Tag Generation**: AI-powered ensemble model for intelligent content classification using LSTM, CNN, GRU, and Random Forest algorithms
 
 ### Content Safety & Compliance
 - **Profanity Detection**: Real-time filtering using KolasAI technology
@@ -42,3 +38,4 @@ BloggersPoint is an innovative online blogging platform that leverages various A
 - Black Forest FLUX.1-dev - Advanced text-to-image generation
 - Gemini Developer API - AI-powered content enhancement
 - KolasAI - Real-time profanity and sentiment analysis
+- Custom Ensemble Tagging Model served via FastAPI – combines LSTM, GRU, CNN, and Random Forest, delivering good accuracy on multi‑label prediction tasks

@@ -350,62 +350,6 @@ async def get_status():
         } if model else {}
     }
 
-@app.post("/predict/batch")
-async def predict_batch_tags(blog_contents: List[BlogContent]):
-    """
-    Predict tags for multiple blog contents in batch
-    
-    - **blog_contents**: List of blog content objects
-    
-    Returns array of predictions for each input
-    """
-    if model is None:
-        raise HTTPException(status_code=500, detail="Ensemble model not initialized")
-    
-    if len(blog_contents) > 50:  # Limit batch size
-        raise HTTPException(status_code=400, detail="Batch size too large (max 50 items)")
-    
-    try:
-        results = []
-        for i, blog_content in enumerate(blog_contents):
-            try:
-                result = model.predict_ensemble(
-                    title=blog_content.title, 
-                    content=blog_content.content, 
-                    details=blog_content.details,
-                    threshold=blog_content.threshold,
-                    top_k=blog_content.top_k
-                )
-                
-                if blog_content.details:
-                    results.append({
-                        "index": i,
-                        "topics": [tag_info["tag"] for tag_info in result["tags"]],
-                        "details": result
-                    })
-                else:
-                    results.append({
-                        "index": i,
-                        "topics": result
-                    })
-                    
-            except Exception as e:
-                results.append({
-                    "index": i,
-                    "error": str(e),
-                    "topics": []
-                })
-        
-        return {
-            "results": results,
-            "batch_size": len(blog_contents),
-            "successful_predictions": len([r for r in results if "error" not in r])
-        }
-        
-    except Exception as e:
-        logger.error(f"Batch prediction failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Batch prediction failed: {str(e)}")
-
 # Error handlers
 @app.exception_handler(404)
 async def not_found_handler(request, exc):

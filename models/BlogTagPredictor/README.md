@@ -1,6 +1,6 @@
 # Blog Content Tagging Model
 
-An advanced machine learning system to automatically tag blog content using a powerful ensemble of deep learning and classical models. This project includes a FastAPI-based backend to serve predictions via RESTful APIs.
+An advanced machine learning system to automatically tag blog content using a powerful ensemble of deep learning and classical models. This production-ready API serves predictions through a comprehensive FastAPI backend with real-time inference capabilities.
 
 ##  Overview
 
@@ -12,14 +12,21 @@ This project is designed to predict relevant tags for blog articles based on the
 - TF-IDF feature engineering
 
 ## Model Architecture
+### Ensemble Components
 
-The ensemble includes:
-- **LSTM**: Bidirectional with Multi-Head Attention
-- **CNN**: Multi-kernel convolutions with global max pooling
-- **GRU**: Bidirectional with dropout
-- **Random Forest**: Multi-output classifier trained on TF-IDF vectors
+| Model             | Architecture                                                    | Purpose                                                   |
+| ----------------- | --------------------------------------------------------------- | --------------------------------------------------------- |
+| **LSTM**          | Bidirectional LSTM with Multi-Head Attention                    | Sequential pattern recognition and long-term dependencies |
+| **CNN**           | Multi-kernel convolutions (3,4,5-grams) with Global Max Pooling | Local feature extraction and n-gram patterns              |
+| **GRU**           | Bidirectional GRU with dropout                                  | Efficient sequence modeling with reduced complexity       |
+| **Random Forest** | Multi-Output classifier on TF-IDF vectors                       | Classical ML approach for robust baseline predictions     |
 
-Each model is trained on processed blog data and combined using weighted averaging during inference.
+### Preprocessing Pipeline
+- **Text Cleaning**: HTML tag removal, URL filtering, emoji processing
+- **Tokenization**: Advanced tokenization with lemmatization and stopword removal
+- **Domain Recognition**: Pattern-based detection for programming, food, travel domains
+- **Feature Engineering**: TF-IDF vectorization with n-gram analysis (1-3 grams)
+- **Config Mapping**: Intelligent word-to-tag mappings from configuration files
 
 ## FastAPI Endpoints
 
@@ -30,7 +37,6 @@ The API exposes several endpoints via FastAPI:
 
 Returns a brief status report of the API and model readiness.
 
----
 
 ### `POST /predict`
 > Predict tags for a single blog entry
@@ -40,14 +46,12 @@ Returns a brief status report of the API and model readiness.
 {
   "title": "Your blog title",
   "content": "The full content of your blog...",
-  "details": true,
   "threshold": 0.3,
   "top_k": 5
 }
 ```
 **Returns**
 - Predicted tags (top-k)
-- Optionally includes detailed scores from each model
 
 ### `GET /tags`
 > Lists all tags available for prediction
@@ -58,7 +62,7 @@ Returns a brief status report of the API and model readiness.
 ### `GET /training-info`
 > Insights into the training data, such as tag distribution and content stats
 
-###`POST /retrain`
+### `POST /retrain`
 > Retrain the ensemble model using training_data.py
 
 ### `GET /health`
