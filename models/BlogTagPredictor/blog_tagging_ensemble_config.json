@@ -69,5 +69,11 @@
     "Economy",
     "Financial Markets"
   ],
-  "config_path": "blog_config.py"
+  "config_path": "blog_config.py",
+  "ensemble_weights": [
+    0.25,
+    0.25,
+    0.25,
+    0.25
+  ]
 }

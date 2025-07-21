@@ -181,7 +181,7 @@ async def predict_tags(blog_content: BlogContent):
         result = model.predict_ensemble(
             title=blog_content.title, 
             content=blog_content.content, 
-            details=blog_content.details,
+            # details=blog_content.details,
             threshold=blog_content.threshold,
             top_k=blog_content.top_k
         )
