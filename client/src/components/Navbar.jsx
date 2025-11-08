@@ -112,7 +112,7 @@ const Navbar = () => {
                 <p className="text-blue-400 hover:bg-blue-950 px-3 py-2 rounded-md text-base font-medium transition-colors cursor-pointer" onClick={() => navigate('/explore')}>
                   Blogs
                 </p>
-                <a target='_blank' href="https://portfolio-abhishekverma.web.app/" className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 px-3 py-2 rounded-md text-base font-medium transition-all">
+                <a target='_blank' href="https://portfolio-abhishek-verma.web.app/" className="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent hover:from-blue-700 hover:to-purple-700 px-3 py-2 rounded-md text-base font-medium transition-all">
                   About the Dev
                 </a>
                 
